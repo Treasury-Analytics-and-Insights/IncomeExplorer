@@ -11,7 +11,7 @@ suppressMessages({
   library(shinythemes)
   library(plotly)
   library(rhandsontable)
-  library(IncomeExplorer)
+  library(data.table)
 })
 
 # Define UI
