@@ -1,0 +1,38 @@
+Package: IncomeExplorer
+Type: Package
+Title: Explore Family Incomes
+Version: 0.4.1
+Authors@R: c(
+    person("Luke", "Symes", , "Luke.Symes@treasury.govt.nz", c("aut", "cre")),
+    person("Cory", "Davis", , "Cory.Davis@treasury.govt.nz", c("aut")),
+    person("Michael", "Eglinton", , "Michael.Eglinton@treasury.govt.nz", c("aut")),
+    person("Yvonne", "Wang", , "Yvonne.Wang@treasury.govt.nz", c("aut")),
+    person("Meghan", "Stephens", , "Meghan.Stephens@treasury.govt.nz", c("aut")),
+    person("Te Tai Ōhanga - The Treasury", role = c("cph", "fnd"))
+    )
+Description: Explore Family Incomes, including EMTR and income component analysis, special edition for release
+License: GPL-3
+URL: https://dev.azure.com/nztreasury/Analytics.Insights/_git/IncomeExplorer
+Encoding: UTF-8
+LazyData: true
+Depends:
+    R (>= 3.6.0)
+Imports:
+    shiny (>= 1.6.0),
+    shinythemes,
+    data.table (>= 1.12.8),
+    magrittr,
+    stringr,
+    openxlsx,
+    plotly,
+    RColorBrewer,
+    rhandsontable,
+    scales,
+    logging,
+    zoo
+Suggests: 
+    testthat,
+    pkgdown,
+    covr
+RoxygenNote: 7.1.1
+

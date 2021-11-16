@@ -1,0 +1,7 @@
+exportPattern("^[[:alpha:]]+")
+import(shiny)
+import(shinythemes)
+import(data.table)
+import(plotly)
+importFrom(magrittr, "%>%", "%<>%")
+import(logging)
