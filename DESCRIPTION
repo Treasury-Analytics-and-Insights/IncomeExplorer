@@ -11,7 +11,7 @@ Authors@R: c(
     person("Te Tai Ōhanga - The Treasury", role = c("cph", "fnd"))
     )
 Description: Explore Family Incomes, including EMTR and income component analysis, special edition for release
-License: GPL-3
+License: MIT + file LICENSE
 URL: https://dev.azure.com/nztreasury/Analytics.Insights/_git/IncomeExplorer
 Encoding: UTF-8
 LazyData: true
@@ -35,4 +35,3 @@ Suggests:
     pkgdown,
     covr
 RoxygenNote: 7.1.1
-
