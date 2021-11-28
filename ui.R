@@ -39,8 +39,12 @@ shinyUI(fluidPage(
                   choices = file_names, 
                   selected = file_names[grep("TY22", file_names)]),
       
+      downloadButton("download_template", 
+                     HTML("Download Parameter Template <br> for Reform changes")),
+      
       # Select reform parameters file
       fileInput('parameters_Reform', 'Reform parameters', accept = c('xlsx')),
+      
       # Download the data used in the app
       downloadButton("downloadData", "Download Results"),
       

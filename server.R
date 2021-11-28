@@ -55,6 +55,22 @@ shinyServer(function(input, output, session) {
       hot_table(highlightCol = TRUE, highlightRow = TRUE)
   })    
   
+  # Download Parameter template
+  output$download_template <- downloadHandler(
+    filename = function() {
+      paste("Reform_", 
+      # Below is extracting the Tax year for the file names of reform parameter file.
+            basename(input$parameters_SQ) |>
+              strsplit("[_.]") |>
+              sapply(function(x) x[2]), 
+            ".xlsx", sep = "")
+    },
+    content = function(file) {
+      file.copy(input$parameters_SQ, file)
+    }
+  )
+  
+  
   # Read in the parameters from files
   reload_data <- reactive({
 
