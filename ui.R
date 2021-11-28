@@ -27,7 +27,7 @@ shinyUI(fluidPage(
   # different themes from shinythemes R package, https://rstudio.github.io/shinythemes/
   theme = shinytheme("readable"),
   # Application title
-  titlePanel("Income Explorer Prototype (version 0.3.0)"),
+  titlePanel("Income Explorer Prototype (version 0.3.1)"),
   
   # Side menu
   sidebarLayout(
