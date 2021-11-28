@@ -35,7 +35,7 @@ shinyUI(fluidPage(
       width = 4,
       # Select SQ parameters file
       selectInput(inputId = 'parameters_SQ',
-                  label = 'Choose Status quo setting of Tax Year',
+                  label = 'Choose a Status quo setting of Tax Year',
                   choices = file_names, 
                   selected = file_names[grep("TY22", file_names)]),
       
