@@ -36,8 +36,9 @@ shinyServer(function(input, output, session) {
   WEEKS_IN_YEAR <- 52L
 
   load_parameters_data <- reactive({
+
     show_all_parameters(
-      input$parameters_SQ$datapath,
+      input$parameters_SQ,
       input$parameters_Reform$datapath
     )
   })
@@ -56,6 +57,7 @@ shinyServer(function(input, output, session) {
   
   # Read in the parameters from files
   reload_data <- reactive({
+
     req(input$parameters_SQ, input$parameters_Reform)
     
     if(!is.null(input$show_parameters)){
@@ -63,8 +65,9 @@ shinyServer(function(input, output, session) {
       parameters_SQ <- parameters_from_df(DF, parameters_column = 2)
       parameters_Reform <- parameters_from_df(DF, parameters_column = 3)
     } else {
-      parameters_SQ  <-  parameters_from_file(req(input$parameters_SQ)$datapath)
-      parameters_Reform <- parameters_from_file(req(input$parameters_Reform)$datapath)
+      parameters_SQ  <-  parameters_from_file(input$parameters_SQ)
+      
+      parameters_Reform <- parameters_from_file(input$parameters_Reform$datapath)
     }
     
     return(list(
