@@ -19,7 +19,7 @@ shinyServer(function(input, output, session) {
   warning_modal <- modalDialog(
     title = "Warning", 
     paste0(
-      "This software is provided as-is, for research purposes only,",
+      "This software is provided as-is, for research purposes only, ",
       "with absolutely no warranty or guarantee of correctness."
     ),
     easyClose = FALSE, fade = FALSE
