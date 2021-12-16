@@ -128,12 +128,10 @@ shinyServer(function(input, output, session) {
     # MFTC eligibility currently depends on IWTC eligibility in the `emtr` function.
     
     if (input$WFFBEN_SQ != "WFF") {
-      IWTC_in_SQ <- IWTC_check(parameters$parameters_SQ)
-      
       SQ_params_with_no_IWTC <- remove_IWTC_from_params(parameters$parameters_SQ)
       X_SQ_without_IWTC <- hot_emtr(SQ_params_with_no_IWTC)
       
-      if (IWTC_in_SQ && input$WFFBEN_SQ == "Max") {
+      if (input$WFFBEN_SQ == "Max") {
         # Choose which of benefit or IWTC gives max net income
         X_SQ <- choose_IWTC_or_benefit(X_SQ, X_SQ_without_IWTC)
       } else if (input$WFFBEN_SQ == "Benefit") {
@@ -142,17 +140,13 @@ shinyServer(function(input, output, session) {
     }
     
     if (input$WFFBEN_reform != "WFF") {
-      IWTC_in_Reform <- IWTC_check(parameters$parameters_Reform)
-      
       Reform_params_with_no_IWTC <- remove_IWTC_from_params(parameters$parameters_Reform)
       X_Reform_without_IWTC <- hot_emtr(Reform_params_with_no_IWTC)
       
-      if (IWTC_in_Reform && input$WFFBEN_reform == "Max") {
+      if (input$WFFBEN_reform == "Max") {
         # Choose which of benefit or IWTC gives max net income
         X_Reform <- choose_IWTC_or_benefit(X_Reform, X_Reform_without_IWTC)
-      }  else if (input$WFFBEN_reform == "WFF") {
-        X_Reform <- X_Reform
-      } else {
+      }  else if (input$WFFBEN_reform == "Benefit") {
         X_Reform <- X_Reform_without_IWTC
       }
     }
