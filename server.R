@@ -19,9 +19,8 @@ shinyServer(function(input, output, session) {
   warning_modal <- modalDialog(
     title = "Warning", 
     paste0(
-      "All outputs must be peer-reviewed by the TAWA team before being ",
-      "included in advice. The Income Explorer App is currently a prototype, ",
-      "please report any issues."
+      "This software is provided as-is, for research purposes only,",
+      "with absolutely no warranty or guarantee of correctness."
     ),
     easyClose = FALSE, fade = FALSE
   )
