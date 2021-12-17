@@ -34,6 +34,7 @@ shinyUI(fluidPage(
   sidebarLayout(
     sidebarPanel(
       width = 4,
+      h6("Latest Update: 2021-12-17"),
       # Select SQ parameters file
       selectInput(inputId = 'parameters_SQ',
                   label = 'Choose a Status quo setting of Tax Year',
