@@ -12,23 +12,41 @@ suppressMessages({
   library(plotly)
   library(rhandsontable)
   library(data.table)
+  library(magrittr)
 })
+
+
+#Extract the files names with path for the SQ from the inst folder
+file_names <- list.files(path = "inst/MFTC_calculator/App_Parameters/",
+                         full.names = TRUE)
+
+names(file_names) <- 
+  basename(file_names) %>% strsplit("[_.]") %>% sapply(function(x) x[2])
 
 # Define UI
 shinyUI(fluidPage(
   # different themes from shinythemes R package, https://rstudio.github.io/shinythemes/
   theme = shinytheme("readable"),
   # Application title
-  titlePanel("Income Explorer Prototype (version 0.3.0)"),
+  titlePanel("Income Explorer Prototype (version 0.3.1)"),
   
   # Side menu
   sidebarLayout(
     sidebarPanel(
       width = 4,
+      h6("Latest Update: 2021-12-17"),
       # Select SQ parameters file
-      fileInput('parameters_SQ', 'Status quo parameters', accept = c('xlsx')),
+      selectInput(inputId = 'parameters_SQ',
+                  label = 'Choose a Status quo setting of Tax Year',
+                  choices = file_names, 
+                  selected = file_names[grep("TY22", file_names)]),
+      
+      downloadButton("download_template", 
+                     HTML("Download Parameter Template <br> for Reform changes")),
+      
       # Select reform parameters file
       fileInput('parameters_Reform', 'Reform parameters', accept = c('xlsx')),
+      
       # Download the data used in the app
       downloadButton("downloadData", "Download Results"),
       
