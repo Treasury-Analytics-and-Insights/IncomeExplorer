@@ -12,6 +12,7 @@ suppressMessages({
   library(plotly)
   library(rhandsontable)
   library(data.table)
+  library(magrittr)
 })
 
 
@@ -20,7 +21,7 @@ file_names <- list.files(path = "inst/MFTC_calculator/App_Parameters/",
                          full.names = TRUE)
 
 names(file_names) <- 
-  basename(file_names) |> strsplit("[_.]") |> sapply(function(x) x[2])
+  basename(file_names) %>% strsplit("[_.]") %>% sapply(function(x) x[2])
 
 # Define UI
 shinyUI(fluidPage(

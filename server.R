@@ -59,8 +59,8 @@ shinyServer(function(input, output, session) {
     filename = function() {
       paste("Reform_", 
       # Below is extracting the Tax year for the file names of reform parameter file.
-            basename(input$parameters_SQ) |>
-              strsplit("[_.]") |>
+            basename(input$parameters_SQ) %>% 
+              strsplit("[_.]") %>% 
               sapply(function(x) x[2]), 
             ".xlsx", sep = "")
     },
