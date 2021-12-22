@@ -357,15 +357,6 @@ compare_plots <- function(data1, data2,
            hovermode = "compare") 
 }
 
-
-IWTC_check <- function(params) {
-  can_get_IWTC <- (
-    params$FamilyAssistance_IWTC_Eligibility == 1 &&
-      params$FamilyAssistance_IWTC_ToBeneficiaries == 0
-  )
-  return(can_get_IWTC)
-}
-
 remove_IWTC_from_params <- function(input_params) {
   output_params <- copy(input_params)
   output_params$FamilyAssistance_IWTC_Rates_UpTo3Children <- 0
