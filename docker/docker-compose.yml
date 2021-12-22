@@ -1,0 +1,41 @@
+version: '3.5'
+
+services:
+
+  shiny:
+    image: tsy/income-explorer-app
+
+    build:
+      # No docker files in app folder, but point context there to see app files
+      context: ..
+      dockerfile: docker/Dockerfile
+      args:
+        # Get host values for proxies if you need them for a firewall
+        - http_proxy=${http_proxy}
+        - https_proxy=${https_proxy}
+ 
+    # environment:
+        # Nothing passed to container (but PORT read from .env) 
+
+    ports:
+      # Use 3838 as default, or overwrite using a .env file, or in shell
+      # with 'export APP_PORT=1234' (or APP_PORT=1234 docker-compose up)
+        - "${APP_PORT:-3838}:3838"
+    
+    container_name: ${USER}_tsy-income-explorer-app_${APP_PORT:-3838}
+
+    networks: 
+      - tsy-income-explorer-app
+
+    restart: unless-stopped
+
+networks:
+  tsy-income-explorer-app:
+    # driver: bridge      
+
+
+# # Optionally use the syslog facility to keep logs centrally 
+#    logging:
+#    driver: syslog
+#    options:
+#        syslog-facility: "local0"
