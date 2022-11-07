@@ -26,7 +26,7 @@ estimate_MFTC_from_files <- function(
       stringr::str_extract("TY[0-9]{2}") %>%
       stringr::str_remove("TY") %>% as.numeric()
     tax_year <- tax_year + 2000
-    if (tax_year > 2022) {
+    if (tax_year > 2023) {
       logging::logwarn(
         "Minimum wage for tax year %d is not legislated yet, subject to change",
         tax_year
