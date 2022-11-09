@@ -96,6 +96,7 @@ shinyServer(function(input, output, session) {
     }
     
     # Create helper emtr function using current inputs
+    # SQ
     hot_emtr <- function(params) {
       emtr_df <- emtr(
         # System parameters
@@ -112,8 +113,26 @@ shinyServer(function(input, output, session) {
       return(emtr_df)
     }
     
+    # reform --------
+    
+    hot_emtr_reform <- function(params) {
+      emtr_df <- emtr_reform(
+        # System parameters
+        params,
+        # Family parameters
+        input$Partnered, input$wage1_hourly, children, partner_wages, partner_hours,
+        input$AS_Accommodation_Costs, AS_Accommodation_Rent, as.numeric(input$AS_Area),
+        pov_thresholds = input$pov_thresholds,bhc_median = input$bhc_median,
+        ahc_median = input$ahc_median,
+        # Presentation parameters
+        max_wage = MAX_WAGE, steps_per_dollar = 1L, weeks_in_year = WEEKS_IN_YEAR, 
+        MFTC_WEP_scaling = as.numeric(input$MFTC_WEP_scaling)
+      )
+      return(emtr_df)
+    }
+    
     X_SQ <- hot_emtr(parameters$parameters_SQ)
-    X_Reform <- hot_emtr(parameters$parameters_Reform)
+    X_Reform <- hot_emtr_reform(parameters$parameters_Reform)
     
 
     
