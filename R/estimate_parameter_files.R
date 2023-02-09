@@ -9,9 +9,10 @@ DEFAULT_MIN_WAGES <- c(
   "2021" = 18.90,
   "2022" = 20.00,
   # Assumes the minimum wage is unchanged for future tax years
-  "2023" = 20.00,
-  "2024" = 20.00,
-  "2025" = 20.00
+  "2023" = 21.20,
+  "2024" = 21.20,
+  "2025" = 21.20,
+  "2026" = 21.20
 )
 
 estimate_MFTC_from_files <- function(
@@ -25,7 +26,7 @@ estimate_MFTC_from_files <- function(
       stringr::str_extract("TY[0-9]{2}") %>%
       stringr::str_remove("TY") %>% as.numeric()
     tax_year <- tax_year + 2000
-    if (tax_year > 2021) {
+    if (tax_year > 2023) {
       logging::logwarn(
         "Minimum wage for tax year %d is not legislated yet, subject to change",
         tax_year
