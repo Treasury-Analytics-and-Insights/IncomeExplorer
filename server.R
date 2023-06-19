@@ -135,8 +135,6 @@ shinyServer(function(input, output, session) {
       if (input$WFFBEN_SQ == "Max") {
         # Choose which of benefit or IWTC gives max net income
         X_SQ <- choose_IWTC_or_benefit(X_SQ, X_SQ_without_IWTC)
-        X_SQ[, EMTR := 1 - 1L*(shift(Net_Income,1L,type="lead")-Net_Income)]
-        X_SQ[, EMTR := zoo::na.locf(EMTR)]
         
       } else if (input$WFFBEN_SQ == "Benefit") {
         X_SQ <- X_SQ_without_IWTC
@@ -150,8 +148,6 @@ shinyServer(function(input, output, session) {
       if (input$WFFBEN_reform == "Max") {
         # Choose which of benefit or IWTC gives max net income
         X_Reform <- choose_IWTC_or_benefit(X_Reform, X_Reform_without_IWTC)
-        X_Reform[, EMTR := 1 - 1L*(shift(Net_Income,1L,type="lead")-Net_Income)]
-        X_Reform[, EMTR := zoo::na.locf(EMTR)]
         
       }  else if (input$WFFBEN_reform == "Benefit") {
         X_Reform <- X_Reform_without_IWTC
