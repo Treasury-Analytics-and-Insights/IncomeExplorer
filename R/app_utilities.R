@@ -380,6 +380,9 @@ choose_IWTC_or_benefit <- function(X, X_without_IWTC) {
   X <- rbind(With_IWTC, Without_IWTC)
   setorderv(X, "hours1")
   
+  X[, EMTR := 1 - 1L*(shift(Net_Income,1L,type="lead")-Net_Income)]
+  X[, EMTR := zoo::na.locf(EMTR)]
+  
   return(X)
 }
 

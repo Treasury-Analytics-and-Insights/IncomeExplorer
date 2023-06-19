@@ -538,7 +538,7 @@ emtr <- function(
   LT_14 <- sum(Children_ages < 14)
   
   # Number of children over 14
-  GTE_14 <- sum( Children_ages >= 14) + fifelse(Partnered == FALSE, 1, 2)
+  GTE_14 <- sum( Children_ages >= 14) + ifelse(Partnered == FALSE, 1, 2)
   
   # Modified OECD
   moecd_eq_factor <- 1 + 0.5 * (GTE_14 - 1) + 0.3 * (LT_14)
