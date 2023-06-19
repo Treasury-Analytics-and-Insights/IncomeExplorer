@@ -8,11 +8,12 @@ DEFAULT_MIN_WAGES <- c(
   "2020" = 17.70,
   "2021" = 18.90,
   "2022" = 20.00,
-  # Assumes the minimum wage is unchanged for future tax years
   "2023" = 21.20,
-  "2024" = 21.20,
-  "2025" = 21.20,
-  "2026" = 21.20
+  "2024" = 22.70,
+  # Assumes the minimum wage is unchanged for future tax years
+  "2025" = 22.70,
+  "2026" = 22.70,
+  "2027" = 22.70
 )
 
 estimate_MFTC_from_files <- function(

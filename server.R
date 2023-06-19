@@ -8,6 +8,7 @@ suppressMessages({
   library(openxlsx)
   library(rhandsontable)
   library(magrittr)
+  library(data.table)
 })
 
 # Define server logic required to run the app
@@ -134,6 +135,7 @@ shinyServer(function(input, output, session) {
       if (input$WFFBEN_SQ == "Max") {
         # Choose which of benefit or IWTC gives max net income
         X_SQ <- choose_IWTC_or_benefit(X_SQ, X_SQ_without_IWTC)
+        
       } else if (input$WFFBEN_SQ == "Benefit") {
         X_SQ <- X_SQ_without_IWTC
       }
@@ -146,6 +148,7 @@ shinyServer(function(input, output, session) {
       if (input$WFFBEN_reform == "Max") {
         # Choose which of benefit or IWTC gives max net income
         X_Reform <- choose_IWTC_or_benefit(X_Reform, X_Reform_without_IWTC)
+        
       }  else if (input$WFFBEN_reform == "Benefit") {
         X_Reform <- X_Reform_without_IWTC
       }
