@@ -10,22 +10,14 @@ TAWA_to_app_param_files <- function(
       "FamilyAssistance/FTC/Rates/SecondChild0to12",
       "FamilyAssistance/IWTC/IncomeTest",
       "FamilyAssistance/IWTC/IncomeThreshold",
-      "FamilyAssistance/IWTC/IncomeThreshold",
-      "Accommodation/MaxRate/CoupleDeps_Single2+Deps/Area1",
-      "Accommodation/MaxRate/CoupleDeps_Single2+Deps/Area2",
-      "Accommodation/MaxRate/CoupleDeps_Single2+Deps/Area3",
-      "Accommodation/MaxRate/CoupleDeps_Single2+Deps/Area4"
+      "FamilyAssistance/IWTC/IncomeThreshold"
     ),
     New_Parameter = c(
       "FamilyAssistance/FTC/Rates/FirstChild",
       "FamilyAssistance/FTC/Rates/SubsequentChild",
       "FamilyAssistance/IWTC/Eligibility",
       "FamilyAssistance/IWTC/IncomeThreshold/Couple",
-      "FamilyAssistance/IWTC/IncomeThreshold/Single",
-      "Accommodation/MaxRate/CoupleDeps_Single2_Deps/Area1",
-      "Accommodation/MaxRate/CoupleDeps_Single2_Deps/Area2",
-      "Accommodation/MaxRate/CoupleDeps_Single2_Deps/Area3",
-      "Accommodation/MaxRate/CoupleDeps_Single2_Deps/Area4"
+      "FamilyAssistance/IWTC/IncomeThreshold/Single"
     )
   ) 
   # template
