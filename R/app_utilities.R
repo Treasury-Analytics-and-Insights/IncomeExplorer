@@ -107,25 +107,22 @@ amounts_net_plot <-
     
     p <- 
       plot_ly(Y) %>%
-      add_trace(x=~hours1, y=~0, line=list(width = 0), xaxis="x2", 
-                data=X, showlegend=FALSE, inherit=FALSE, 
-                hoverinfo = "none", type = "scatter", mode = "lines") %>%
       layout(xaxis2 = list(overlaying = "x", nticks = 10, side = "top",
                            title = "Hours/week", automargin=TRUE, size=8,
                            showline = TRUE),
              xaxis = list(title = "Annual gross wage income ($)", 
-                          tickformat = "$", 
+                          tickformat = "$,", 
                           automargin=TRUE,
                           zeroline = TRUE,
                           showline = TRUE,
                           mirror=TRUE),
-             yaxis = list (title = "Income ($)", tickformat = "$", 
+             yaxis = list (title = "Income ($)", tickformat = "$,", 
                            automargin=TRUE,
                            zeroline = TRUE,
                            showline = TRUE,
                            mirror=TRUE),
              legend = list(x = 100, y = 0.5),
-             hovermode = "compare") 
+             hovermode = "x") 
     
     if("Tax on Wage and ACC" %in% display_cols)
       p <- p %>% add_trace(data = Y, x = ~gross_wage1_annual, type = 'scatter', mode = 'none',
@@ -134,84 +131,89 @@ amounts_net_plot <-
                            hovertemplate = paste("Tax on Wage and ACC: %{y:$,.0f}<extra></extra>"))  
     
     if("Tax on Core Benefit" %in%  display_cols)
-      p <- p %>% add_trace(data = Y, x = ~gross_wage1_annual, type = 'scatter', mode = 'none', 
-                           y = ~benefit_tax, name = "Tax on Core Benefit", 
+      p <- p %>% add_trace(data = Y, x = ~gross_wage1_annual, type = 'scatter', mode = 'none',
+                           y = ~benefit_tax, name = "Tax on Core Benefit",
                            fillcolor = set_colours[12], stackgroup = 'one',
-                           hovertemplate = paste("Tax on Core Benefit: %{y:$,.0f}<extra></extra>"))  
-    
+                           hovertemplate = paste("Tax on Core Benefit: %{y:$,.0f}<extra></extra>"))
+
     if("Net Wage (Partner)" %in%  display_cols)
       p <- p %>% add_trace(data = Y, x = ~gross_wage1_annual, type = 'scatter', mode = 'none',
-                           y = ~net_wage2, name = 'Net Wage (Partner)', stackgroup = 'two', 
+                           y = ~net_wage2, name = 'Net Wage (Partner)', stackgroup = 'two',
                            fillcolor = set_colours[11],
-                           hovertemplate = paste("Net Wage (Partner): %{y:$,.0f}<extra></extra>"))  
-    
+                           hovertemplate = paste("Net Wage (Partner): %{y:$,.0f}<extra></extra>"))
+
     if("Net Wage" %in%  display_cols)
       p <- p %>% add_trace(data = Y, x = ~gross_wage1_annual, type = 'scatter', mode = 'none',
                            y = ~net_wage1, name = 'Net Wage', stackgroup = 'two',
                            fillcolor = set_colours[10],
                            hovertemplate = paste(
                              "Annual gross wage income:\n %{x:$,.2f} \n",
-                             "Net Wage: %{y:$,.0f}<extra></extra>"))  
-    
+                             "Net Wage: %{y:$,.0f}<extra></extra>"))
+
     if("Net Core Benefit" %in%  display_cols)
       p <- p %>% add_trace(data = Y, x = ~gross_wage1_annual, type = 'scatter', mode = 'none',
                            y = ~net_benefit, name = 'Net Core Benefit',
                            fillcolor = set_colours[9], stackgroup = 'two',
-                           hovertemplate = paste("Net Core Benefit: %{y:$,.0f}<extra></extra>"))  
-    
+                           hovertemplate = paste("Net Core Benefit: %{y:$,.0f}<extra></extra>"))
 
-    
+
+
     if("IETC" %in%  display_cols)
       p <- p %>% add_trace(data = Y, x = ~gross_wage1_annual, type = 'scatter', mode = 'none',
                            y = ~IETC_abated, name = 'IETC',
                            fillcolor = set_colours[7], stackgroup = 'two',
-                           hovertemplate = paste("IETC: %{y:$,.0f}<extra></extra>"))  
-    
+                           hovertemplate = paste("IETC: %{y:$,.0f}<extra></extra>"))
+
     if("MFTC" %in%  display_cols)
       p <- p %>% add_trace(data = Y, x = ~gross_wage1_annual, type = 'scatter', mode = 'none',
-                           y = ~MFTC, name = 'MFTC', 
+                           y = ~MFTC, name = 'MFTC',
                            fillcolor = set_colours[6], stackgroup = 'two',
-                           hovertemplate = paste("MFTC: %{y:$,.0f}<extra></extra>"))  
-    
+                           hovertemplate = paste("MFTC: %{y:$,.0f}<extra></extra>"))
+
     if("FTC" %in% display_cols)
       p <- p %>% add_trace(data = Y, x = ~gross_wage1_annual, type = 'scatter', mode = 'none',
                            y = ~FTC_abated, name = 'FTC',
                            fillcolor = set_colours[5], stackgroup = 'two',
-                           hovertemplate = paste("FTC: %{y:$,.0f}<extra></extra>"))  
-    
+                           hovertemplate = paste("FTC: %{y:$,.0f}<extra></extra>"))
+
     if("IWTC" %in%  display_cols)
       p <- p %>% add_trace(data = Y, x = ~gross_wage1_annual, type = 'scatter', mode = 'none',
                            y = ~IWTC_abated, name = 'IWTC',
                            fillcolor = set_colours[4], stackgroup = 'two',
-                           hovertemplate = paste("IWTC: %{y:$,.0f}<extra></extra>"))  
-    
+                           hovertemplate = paste("IWTC: %{y:$,.0f}<extra></extra>"))
+
     if("Accomodation Supplement" %in%  display_cols)
       p <- p %>%   add_trace(data = Y, x = ~gross_wage1_annual, type = 'scatter', mode = 'none',
                              y = ~AS_Amount,
                              name = 'Accomodation Supplement',
                              fillcolor = set_colours[3], stackgroup = 'two',
-                             hovertemplate = paste("Accomodation Supplement: %{y:$,.0f}<extra></extra>"))  
-    
+                             hovertemplate = paste("Accomodation Supplement: %{y:$,.0f}<extra></extra>"))
+
     if("Winter Energy"  %in%  display_cols )
       p <- p %>% add_trace(data = Y, x = ~gross_wage1_annual, type = 'scatter', mode = 'none',
                            y = ~WinterEnergy, name = 'Winter Energy',
                            fillcolor = set_colours[2], stackgroup = 'two',
-                           hovertemplate = paste("Winter Energy: %{y:$,.0f}<extra></extra>"))  
-    
+                           hovertemplate = paste("Winter Energy: %{y:$,.0f}<extra></extra>"))
+
     if("Best Start"  %in%  display_cols)
       p <- p %>% add_trace(data = Y, x = ~gross_wage1_annual, type = 'scatter', mode = 'none',
-                           y = ~BestStart_Total, 
-                           name = 'Best Start', fillcolor = set_colours[1], 
+                           y = ~BestStart_Total,
+                           name = 'Best Start', fillcolor = set_colours[1],
                            stackgroup = 'two',
-                           hovertemplate = paste("Best Start: %{y:$,.0f}<extra></extra>"))   
-    
-    
+                           hovertemplate = paste("Best Start: %{y:$,.0f}<extra></extra>"))
+
+
     #Adding a line for Net Income
     if("Net Income"  %in%  display_cols)
-      p <- 
-      p %>% add_lines(data = Y, x = ~gross_wage1_annual, 
+      p <-
+      p %>% add_lines(data = Y, x = ~gross_wage1_annual,
                       y = ~Net_Income, name = 'Net Income', color = I("black"),
-                      hovertemplate = paste("Net Income: %{y:$,.0f}<extra></extra>")) 
+                      hovertemplate = paste("Net Income: %{y:$,.0f}<extra></extra>"))
+    
+    # Add secondary axis with hours
+    p <- p %>% add_trace(x=~hours1, y=~0, line=list(width = 0), xaxis="x2",
+              data=X, showlegend=FALSE, inherit=FALSE,
+              hoverinfo = "none", type = "scatter", mode = "lines")
     
     return(p)
     
@@ -265,13 +267,13 @@ compare_net_income_plot <- function(EMTR_table1, EMTR_table2,
                          title = "Hours/week", automargin=TRUE, size=8,
                          showline = TRUE),
            xaxis = list(title = "Annual gross wage income ($)", 
-                        tickformat =  "$", automargin=TRUE,
+                        tickformat = "$,", automargin=TRUE,
                         showline = TRUE, mirror=TRUE),
-           yaxis = list (title = "Income ($)", tickformat = "$", 
+           yaxis = list (title = "Income ($)", tickformat = "$,", 
                          automargin=TRUE,
                          showline = TRUE,  mirror=TRUE),
            legend = list(x = 100, y = 0.5),
-           hovermode = "compare") 
+           hovermode = "x") 
 }
 
 
@@ -325,6 +327,14 @@ compare_plots <- function(data1, data2,
   data1_for_plot[Scenario=="value1", Scenario:=policy_name1] 
   data1_for_plot[Scenario=="value2", Scenario:=policy_name2]
   
+  hours_data <- data1
+  
+  if (type == "PTR") {
+    # PTR is undefined at zero
+    data1_for_plot <- data1_for_plot[gross_wage1 > 0]
+    hours_data <- hours_data[hours1 > 0]
+  }
+  
   
   data1_for_plot %>% dcast(gross_wage1 + gross_wage1_annual ~ Scenario) %>%
     plot_ly(x = ~gross_wage1_annual, y = ~`Status Quo`, name = policy_name1, 
@@ -337,24 +347,24 @@ compare_plots <- function(data1, data2,
               mode = "lines", type = 'scatter', 
               line = list(color = "#E69F00", width = 3, dash = 'dot'),
               hovertemplate = paste(policy_name2, ": %{y:.2%}<extra></extra>"))%>%
-    add_trace(x=~hours1, y=~0, line=list(width = 0), xaxis="x2", 
-              data=data1, showlegend=FALSE, inherit=FALSE,
-              hoverinfo="none", type = "scatter", mode = "lines") %>%
     layout(xaxis2 = list(overlaying = "x", nticks = 10, side = "top",
                          title = "Hours/week", automargin=TRUE, size=8,
                          showline = TRUE),
            xaxis = list(title = "Annual gross wage income ($)", 
-                        tickformat =  "$",
+                        tickformat = "$,",
                         automargin=TRUE,
                         showline = TRUE,
                         mirror=TRUE),
            yaxis = list (title = y_axis_title,
-                         tickformat = "%", 
+                         tickformat = ".0%", 
                          automargin=TRUE,
                          showline = TRUE,
                          mirror=TRUE),
            legend = list(x = 100, y = 0.5),
-           hovermode = "compare") 
+           hovermode = "x") %>%
+    add_trace(data=hours_data, x = ~hours1, y = ~0, xaxis = "x2",
+              showlegend=FALSE, inherit=FALSE,
+              hoverinfo="none", type = "scatter", mode = "none")
 }
 
 remove_IWTC_from_params <- function(input_params) {
@@ -446,9 +456,9 @@ compare_equiv_income_plot <- function(EMTR_table1, EMTR_table2,
                          title = "Hours/week", automargin=TRUE, size=8,
                          showline = TRUE),
            xaxis = list(title = "Annual gross wage income ($)", 
-                        tickformat =  "$", automargin=TRUE,
+                        tickformat = "$,", automargin=TRUE,
                         showline = TRUE, mirror=TRUE),
-           yaxis = list (title = "Income ($)", tickformat = "$", 
+           yaxis = list (title = "Income ($)", tickformat = "$,", 
                          automargin=TRUE,
                          showline = TRUE,  mirror=TRUE),
            legend = list(x = 100, y = 0.5),
@@ -502,12 +512,12 @@ poverty_depth_plot <-
                              title = "Hours/week", automargin=TRUE, size=8,
                              showline = TRUE),
                xaxis = list(title = "Annual gross wage income ($)", 
-                            tickformat = "$", 
+                            tickformat = "$,", 
                             automargin=TRUE,
                             zeroline = TRUE,
                             showline = TRUE,
                             mirror=TRUE),
-               yaxis = list (title = "Income ($)", tickformat = "$", 
+               yaxis = list (title = "Income ($)", tickformat = "$,", 
                              automargin=TRUE,
                              zeroline = TRUE,
                              showline = TRUE,
@@ -529,81 +539,4 @@ poverty_depth_plot <-
                         hovertemplate = paste("Poverty threshold: %{y:$,.0f}<extra></extra>"))
     
   }
-
-
-
-plot_income_decomposition <- function(comebined_data, scenario_name, set_colours) {
-  plot_ly(comebined_data[Scenario == scenario_name &
-                          hours1 <= 50,]) %>%
-    add_trace(x=~hours1, y=~0, line=list(width = 0), xaxis="x2",
-              showlegend=FALSE, inherit=FALSE, 
-              hoverinfo = "none", type = "scatter", mode = "lines") %>%
-    layout(xaxis2 = list(overlaying = "x", nticks = 10, side = "top",
-                         title = "Hours/week", automargin=TRUE, size=8,
-                         showline = TRUE),
-           xaxis = list(title = "Annual gross wage income ($)", 
-                        tickformat = "$", 
-                        automargin=TRUE,
-                        zeroline = TRUE,
-                        showline = TRUE,
-                        mirror=TRUE),
-           yaxis = list (title = "Income ($)", tickformat = "$", 
-                         automargin=TRUE,
-                         zeroline = TRUE,
-                         showline = TRUE,
-                         mirror=TRUE),
-           legend = list(x = 100, y = 0.5),
-           hovermode = "compare")  %>% 
-    add_trace(x = ~gross_wage1_annual, type = 'scatter', mode = 'none',
-              y = ~wage_tax_and_ACC, name = 'Tax on Wage and ACC', 
-              fillcolor = set_colours[13], stackgroup = 'one',
-              hovertemplate = paste("Tax on Wage and ACC: %{y:$,.0f}<extra></extra>"))  %>%
-    add_trace(x = ~gross_wage1_annual, type = 'scatter', mode = 'none', 
-              y = ~benefit_tax, name = "Tax on Core Benefit", 
-              fillcolor = set_colours[12], stackgroup = 'one',
-              hovertemplate = paste("Tax on Core Benefit: %{y:$,.0f}<extra></extra>"))  %>%
-    add_trace(x = ~gross_wage1_annual, type = 'scatter', mode = 'none',
-              y = ~net_wage2, name = 'Net Wage (Partner)', stackgroup = 'two', 
-              fillcolor = set_colours[11],
-              hovertemplate = paste("Net Wage (Partner): %{y:$,.0f}<extra></extra>")) %>% 
-    add_trace(x = ~gross_wage1_annual, type = 'scatter', mode = 'none',
-              y = ~net_wage1, name = 'Net Wage', stackgroup = 'two',
-              fillcolor = set_colours[10],
-              hovertemplate = paste("Net Wage: %{y:$,.0f}<extra></extra>")) %>% 
-    add_trace(x = ~gross_wage1_annual, type = 'scatter', mode = 'none',
-              y = ~net_benefit, name = 'Net Core Benefit',
-              fillcolor = set_colours[9], stackgroup = 'two',
-              hovertemplate = paste("Net Core Benefit: %{y:$,.0f}<extra></extra>"))  %>% 
- 
-    add_trace(x = ~gross_wage1_annual, type = 'scatter', mode = 'none',
-              y = ~IETC_abated, name = 'IETC',
-              fillcolor = set_colours[7], stackgroup = 'two',
-              hovertemplate = paste("IETC: %{y:$,.0f}<extra></extra>")) %>% 
-    add_trace(x = ~gross_wage1_annual, type = 'scatter', mode = 'none',
-              y = ~MFTC, name = 'MFTC', 
-              fillcolor = set_colours[6], stackgroup = 'two',
-              hovertemplate = paste("MFTC: %{y:$,.0f}<extra></extra>"))  %>%
-    add_trace( x = ~gross_wage1_annual, type = 'scatter', mode = 'none',
-               y = ~FTC_abated, name = 'FTC',
-               fillcolor = set_colours[5], stackgroup = 'two',
-               hovertemplate = paste("FTC: %{y:$,.0f}<extra></extra>"))  %>%
-    add_trace( x = ~gross_wage1_annual, type = 'scatter', mode = 'none',
-               y = ~IWTC_abated, name = 'IWTC',
-               fillcolor = set_colours[4], stackgroup = 'two',
-               hovertemplate = paste("IWTC: %{y:$,.0f}<extra></extra>")) %>% 
-    add_trace( x = ~gross_wage1_annual, type = 'scatter', mode = 'none',
-               y = ~AS_Amount,
-               name = 'Accommodation Supplement',
-               fillcolor = set_colours[3], stackgroup = 'two',
-               hovertemplate = paste("Accommodation Supplement: %{y:$,.0f}<extra></extra>")) %>%
-    add_trace( x = ~gross_wage1_annual, type = 'scatter', mode = 'none',
-               y = ~WinterEnergy, name = 'Winter Energy',
-               fillcolor = set_colours[2], stackgroup = 'two',
-               hovertemplate = paste("Winter Energy: %{y:$,.0f}<extra></extra>")) %>%
-    add_trace( x = ~gross_wage1_annual, type = 'scatter', mode = 'none',
-               y = ~BestStart_Total, 
-               name = 'Best Start', fillcolor = set_colours[1], 
-               stackgroup = 'two',
-               hovertemplate = paste("Best Start: %{y:$,.0f}<extra></extra>")) 
-}
 

@@ -14,12 +14,19 @@ suppressMessages({
   library(data.table)
 })
 
+# TY24 minimum wage
+DEFAULT_HOURLY_WAGE <- 22.70
+
 # Define UI
 shinyUI(fluidPage(
   # different themes from shinythemes R package, https://rstudio.github.io/shinythemes/
   theme = shinytheme("readable"),
   # Application title
-  titlePanel("Income Explorer Prototype (version 0.3.0)"),
+  titlePanel(
+    sprintf(
+      "Income Explorer Prototype (version %s)", packageVersion("IncomeExplorer")
+    )
+  ),
   
   # Side menu
   sidebarLayout(
@@ -37,8 +44,7 @@ shinyUI(fluidPage(
         column(6, numericInput(
           "wage1_hourly", "Hourly wage ($):",
           min = 18, max = 100,
-          #TY24 minimum wage
-          value = 22.70, step = .5,
+          value = DEFAULT_HOURLY_WAGE, step = .5
           # pre = "$", sep = ",",
           # animate = FALSE
         )),
@@ -107,14 +113,15 @@ shinyUI(fluidPage(
           condition = "input.Partnered == 1",
           numericInput(
             "gross_wage2", "Partner's hourly wage ($):",
-            min = 15, max = 100, value = 20, step = .5
+            min = 15, max = 100,
+            value = DEFAULT_HOURLY_WAGE, step = .5
           )
         )),
         column(6, conditionalPanel(
           condition = "input.Partnered == 1",
           numericInput(
             "hours2", "Partner's hours worked:",
-            min = 0, max = 80, value = 0, step = 1
+            min = 0, max = 80, value = 0, step = 5
           )
         ))
       ),
