@@ -33,9 +33,9 @@ shinyUI(fluidPage(
     sidebarPanel(
       width = 4,
       # Select SQ parameters file
-      fileInput('parameters_SQ', 'Status quo parameters', accept = c('xlsx')),
+      selectInput("selectedFileSQ", "Status quo parameters", choices = c("", "Browse...")),
       # Select reform parameters file
-      fileInput('parameters_Reform', 'Reform parameters', accept = c('xlsx')),
+      selectInput("selectedFileReform", "Reform parameters", choices = c("", "Browse...")),
       # Download the data used in the app
       downloadButton("downloadData", "Download Results"),
       

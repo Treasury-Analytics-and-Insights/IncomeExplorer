@@ -29,6 +29,97 @@ shinyServer(function(input, output, session) {
   # Show the model on start up ...
   showModal(warning_modal)
   
+  #### Selecting and/or Uploading parameter files ####
+  # Get default files for SQ and Reform scenarios
+  default_files <- list.files(
+    path = "inst/MFTC_calculator/App_Parameters/", pattern = "*.xlsx", full.names = TRUE
+  )
+  default_files_names <- basename(default_files) %>%
+    tools::file_path_sans_ext() %>%
+    stringr::str_remove("IncomeExplorer_")
+  names(default_files) <- default_files_names
+  
+  default_files_SQ <- default_files
+  default_files_Reform <- default_files
+  
+  # Reactive values to store file choices
+  files_SQ <- reactiveValues(files = default_files_SQ, selectedFile = NULL)
+  files_Reform <- reactiveValues(files = default_files_Reform, selectedFile = NULL)
+  
+  # If the user chooses "Browse...", then we let them upload a file
+  observe({
+    if(input$selectedFileSQ == "Browse...") {
+      showModal(
+        modalDialog(
+          fileInput(
+            "uploadFileSQ", label = "Upload SQ file", buttonLabel = "Browse",
+            multiple = FALSE, accept = c('.xlsx')
+          ), footer = NULL
+        )
+      )
+    }
+  })
+  
+  observe({
+    if(input$selectedFileReform == "Browse...") {
+      showModal(
+        modalDialog(
+          fileInput(
+            "uploadFileReform", label = "Upload Reform file", buttonLabel = "Browse",
+            multiple = FALSE, accept = c('.xlsx')
+          ), footer = NULL
+        )
+      )
+    }
+  })
+  
+  # Once the user uploads a file, save the file name and datapath,
+  # and close the "upload file" modal dialog
+  observeEvent(input$uploadFileSQ, {
+    uploaded_file_name_SQ <- input$uploadFileSQ$name
+    if (uploaded_file_name_SQ %in% names(files_SQ$files)) {
+      uploaded_file_name_SQ <- paste0("Uploaded_SQ_", uploaded_file_name_SQ)
+    }
+    
+    uploaded_file_path_SQ <- list(input$uploadFileSQ$datapath)
+    names(uploaded_file_path_SQ) <- uploaded_file_name_SQ
+    files_SQ$files <- c(uploaded_file_path_SQ, files_SQ$files)
+    
+    files_SQ$selectedFile <- uploaded_file_name_SQ
+    
+    removeModal()
+  })
+  
+  observeEvent(input$uploadFileReform, {
+    uploaded_file_name_Reform <- input$uploadFileReform$name
+    if (uploaded_file_name_Reform %in% names(files_Reform$files)) {
+      uploaded_file_name_Reform <- paste0("Uploaded_Reform_", uploaded_file_name_Reform)
+    }
+    uploaded_file_path_Reform <- list(input$uploadFileReform$datapath)
+    names(uploaded_file_path_Reform) <- uploaded_file_name_Reform
+    files_Reform$files <- c(uploaded_file_path_Reform, files_Reform$files)
+    
+    files_Reform$selectedFile <- uploaded_file_name_Reform
+    removeModal()
+  })
+  
+  # Update dropdown choices when the available files change
+  observe({
+    updateSelectInput(
+      session, "selectedFileSQ",
+      choices = c("", "Browse...", names(files_SQ$files)),
+      selected = files_SQ$selectedFile
+    )
+  })
+  
+  observe({
+    updateSelectInput(
+      session, "selectedFileReform",
+      choices = c("", "Browse...", names(files_Reform$files)),
+      selected = files_Reform$selectedFile
+    )
+  })
+  
   ##########################################
   # Loading data and calculating incomes 
   ##########################################
@@ -37,8 +128,8 @@ shinyServer(function(input, output, session) {
 
   load_parameters_data <- reactive({
     show_all_parameters(
-      input$parameters_SQ$datapath,
-      input$parameters_Reform$datapath
+      files_SQ$files[[input$selectedFileSQ]],
+      files_Reform$files[[input$selectedFileReform]]
     )
   })
   
@@ -56,15 +147,20 @@ shinyServer(function(input, output, session) {
   
   # Read in the parameters from files
   reload_data <- reactive({
-    req(input$parameters_SQ, input$parameters_Reform)
+    req(
+      input$selectedFileSQ,
+      input$selectedFileReform,
+      input$selectedFileSQ %in% names(files_SQ$files),
+      input$selectedFileReform %in% names(files_Reform$files)
+    )
     
     if(!is.null(input$show_parameters)){
       DF <- hot_to_r(input$show_parameters)
       parameters_SQ <- parameters_from_df(DF, parameters_column = 2)
       parameters_Reform <- parameters_from_df(DF, parameters_column = 3)
     } else {
-      parameters_SQ  <-  parameters_from_file(req(input$parameters_SQ)$datapath)
-      parameters_Reform <- parameters_from_file(req(input$parameters_Reform)$datapath)
+      parameters_SQ  <-  parameters_from_file(files_SQ$files[[req(input$selectedFileSQ)]])
+      parameters_Reform <- parameters_from_file(files_Reform$files[[req(input$selectedFileReform)]])
     }
     
     return(list(
@@ -327,9 +423,6 @@ shinyServer(function(input, output, session) {
   # display changed parameters 
   output$changed_parameters <- renderTable({
     parameters = reload_data()
-    if (is.null(input$parameters_SQ) | is.null(input$parameters_Reform)) {
-      return()
-    }
 
     check_for_changed_parameters(
       parameters$parameters_SQ, parameters$parameters_Reform
