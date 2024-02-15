@@ -44,7 +44,7 @@ shinyUI(fluidPage(
         column(6, numericInput(
           "wage1_hourly", "Hourly wage ($):",
           min = 18, max = 100,
-          value = DEFAULT_HOURLY_WAGE, step = .5,
+          value = DEFAULT_HOURLY_WAGE, step = .5
           # pre = "$", sep = ",",
           # animate = FALSE
         )),
