@@ -213,7 +213,7 @@ amounts_net_plot <-
     # Add secondary axis with hours
     p <- p %>% add_trace(x=~hours1, y=~0, line=list(width = 0), xaxis="x2",
               data=X, showlegend=FALSE, inherit=FALSE,
-              hoverinfo = "none", type = "scatter", mode = "lines") %>%
+              hoverinfo = "none", type = "scatter", mode = "lines")
     
     return(p)
     
@@ -327,6 +327,14 @@ compare_plots <- function(data1, data2,
   data1_for_plot[Scenario=="value1", Scenario:=policy_name1] 
   data1_for_plot[Scenario=="value2", Scenario:=policy_name2]
   
+  hours_data <- data1
+  
+  if (type == "PTR") {
+    # PTR is undefined at zero
+    data1_for_plot <- data1_for_plot[gross_wage1 > 0]
+    hours_data <- hours_data[hours1 > 0]
+  }
+  
   
   data1_for_plot %>% dcast(gross_wage1 + gross_wage1_annual ~ Scenario) %>%
     plot_ly(x = ~gross_wage1_annual, y = ~`Status Quo`, name = policy_name1, 
@@ -353,7 +361,10 @@ compare_plots <- function(data1, data2,
                          showline = TRUE,
                          mirror=TRUE),
            legend = list(x = 100, y = 0.5),
-           hovermode = "x")
+           hovermode = "x") %>%
+    add_trace(data=hours_data, x = ~hours1, y = ~0, xaxis = "x2",
+              showlegend=FALSE, inherit=FALSE,
+              hoverinfo="none", type = "scatter", mode = "none")
 }
 
 remove_IWTC_from_params <- function(input_params) {
