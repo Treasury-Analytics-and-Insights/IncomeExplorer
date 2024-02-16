@@ -158,13 +158,22 @@ shinyUI(fluidPage(
       tabsetPanel(
         # Plot net income and EMTR
         tabPanel(
+          "Net Income",
+          h2("Net Income"),
+          plotlyOutput("plot_netincome", height = "300px")
+        ),
+        tabPanel(
           "EMTR",
-          h2("Net Income"), plotlyOutput("plot_netincome", height = "300px"),
-          h2("Effective Marginal Tax Rate"), plotlyOutput("plot_emtr", height = "300px"),
-          h2("Replacement Rate"), plotlyOutput("plot_replacement_rate", height = "300px"),
+          h2("Effective Marginal Tax Rate"), plotlyOutput("plot_emtr", height = "300px")
+        ),
+        tabPanel(
+          "RR",
+          h2("Replacement Rate"), plotlyOutput("plot_replacement_rate", height = "300px")
+        ),
+        tabPanel(
+          "PTR",
           h2("Participation Tax Rate"), plotlyOutput("plot_participation_tax_rate", height = "300px")
         ),
-       # Plot income composition/budget constraint
         tabPanel(
           "Income composition",
           plotlyOutput("plot_incomecomposition_SQ", height = "400px"),
