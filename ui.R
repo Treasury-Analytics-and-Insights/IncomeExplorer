@@ -44,9 +44,9 @@ shinyUI(fluidPage(
           inputId = "selectedFileSQ", label = NULL,
           choices = c("", "Browse...")
         )),
-        column(2, align = "right", actionButton(
+        column(2, align = "right", disabled(actionButton(
           inputId = paste0("download_", "sq"), label = NULL, icon = shiny::icon("download")
-        ))
+        )))
       ),
       
       fluidRow(
@@ -55,15 +55,15 @@ shinyUI(fluidPage(
           inputId = "selectedFileReform", label = NULL,
           choices = c("", "Browse...")
         )),
-        column(2, align = "right", actionButton(
+        column(2, align = "right", disabled(actionButton(
           inputId = paste0("download_", "reform1"), label = NULL, icon = shiny::icon("download")
-        ))
+        )))
       ),
       
       fluidRow(
         column(
           12, align = "right",
-          actionButton(inputId = "add_reform", label = "Add", icon = shiny::icon("plus")),
+          disabled(actionButton(inputId = "add_reform", label = "Add", icon = shiny::icon("plus"))),
           disabled(actionButton(inputId = "remove_reform", label = "Remove", icon = shiny::icon("minus"))),
           downloadButton("downloadData", "Download Results")
         )
@@ -171,7 +171,7 @@ shinyUI(fluidPage(
           plotlyOutput("plot_incomecomposition_Reform", height = "400px")
         ),
         # Table containing the parameters that changed
-        tabPanel("Parameters", tableOutput("changed_parameters"))
+        tabPanel("Policy Changes", tableOutput("changed_parameters"))
       )
     )
   )
