@@ -1,3 +1,18 @@
+tsy_palette <- c( 
+  rgb(0, 131, 172, maxColorValue = 255),
+  rgb(0, 188, 226, maxColorValue = 255),
+  rgb(103, 168, 84, maxColorValue = 255),
+  rgb(188, 214, 81, maxColorValue = 255),
+  rgb(241, 164, 45, maxColorValue = 255),
+  rgb(239, 150, 108, maxColorValue = 255),
+  rgb(0, 79, 103, maxColorValue = 255),
+  rgb(0, 113, 136, maxColorValue = 255),
+  rgb(62, 101, 50, maxColorValue = 255),
+  rgb(122, 143, 34, maxColorValue = 255),
+  rgb(13, 143, 34, maxColorValue = 255),
+  rgb(122, 42, 34, maxColorValue = 255)
+)
+
 # Converts a string used to input children's ages into numeric values
 convert_ages <- function(input_string){
   ages = as.numeric(strsplit(input_string, ",")[[1]])
@@ -58,20 +73,22 @@ amounts_net_plot <-
                "IWTC", "FTC", "MFTC", "IETC", "Net Core Benefit", "Net Wage", 
                "Net Wage (Partner)", "Tax on Core Benefit", "Tax on Wage and ACC")) {
     
-    colours <- RColorBrewer::brewer.pal(n = 12, name = "Paired")
-    set_colours <- c("Best Start" = colours[1], 
-                     "Winter Energy" = colours[2], 
-                     "Accomodation Supplement" = colours[3], 
-                     "IWTC" = colours[4], 
-                     "FTC" = colours[5], 
-                     "MFTC" = colours[6], 
-                     "IETC" = colours[7], 
-                      
-                     "Net Core Benefit" = colours[9], 
-                     "Net Wage" = colours[10], 
-                     "Net Wage (Partner)" = colours[12], 
-                     "Tax on Core Benefit" = colours[12], 
-                     "Tax on Wage and ACC" = colours[11])
+    extended_tsy_palette <- colorRampPalette(tsy_palette)(20)
+    
+    set_colours <- c(
+      "Best Start" = extended_tsy_palette[1],
+      "Winter Energy" = extended_tsy_palette[2],
+      "Accomodation Supplement" = extended_tsy_palette[3],
+      "IWTC" = extended_tsy_palette[4],
+      "FTC" = extended_tsy_palette[5],
+      "MFTC" = extended_tsy_palette[6],
+      "IETC" = extended_tsy_palette[7],
+      "Net Core Benefit" = extended_tsy_palette[9],
+      "Net Wage" = extended_tsy_palette[10],
+      "Net Wage (Partner)" = extended_tsy_palette[12],
+      "Tax on Core Benefit" = extended_tsy_palette[12],
+      "Tax on Wage and ACC" = extended_tsy_palette[11]
+    )
     
     X <- copy(EMTR_table)
     
@@ -250,14 +267,14 @@ compare_net_income_plot <- function(EMTR_table1, EMTR_table2,
     plot_ly(x = ~gross_wage1_annual,
             y = ~`Status Quo`, name = policy_name1, 
             mode = "lines", type = 'scatter',
-            line = list(color = "#56B4E9", width = 3),
+            line = list(color = tsy_palette[1], width = 3),
             hovertemplate = 
               paste0(
                 "Annual gross wage income:\n %{x:$,.2f} \n",
                 policy_name1, ": %{y:$,.2f} <extra></extra>")) %>% 
     add_trace(y = ~`Reform`, name = policy_name2,
               mode = "lines", type = 'scatter', 
-              line = list(color = "#E69F00", width = 3, dash = 'dot'),
+              line = list(color = tsy_palette[2], width = 3, dash = 'dot'),
               hovertemplate =
                 paste0(policy_name2, ": %{y:$,.2f}  <extra></extra>"))%>%
     add_trace(data=EMTR_table1, x = ~hours1, y = ~0, xaxis = "x2",
@@ -339,13 +356,13 @@ compare_plots <- function(data1, data2,
   data1_for_plot %>% dcast(gross_wage1 + gross_wage1_annual ~ Scenario) %>%
     plot_ly(x = ~gross_wage1_annual, y = ~`Status Quo`, name = policy_name1, 
             mode = "lines", type = 'scatter',
-            line = list(color = "#56B4E9", width = 3),
+            line = list(color = tsy_palette[1], width = 3),
             hovertemplate =  paste0(
               "Annual gross wage income:\n %{x:$,.2f}\n ",
               policy_name1, ": %{y:.2%}<extra></extra>")) %>% 
     add_trace(y = ~`Reform`, name = policy_name2,
               mode = "lines", type = 'scatter', 
-              line = list(color = "#E69F00", width = 3, dash = 'dot'),
+              line = list(color = tsy_palette[2], width = 3, dash = 'dot'),
               hovertemplate = paste(policy_name2, ": %{y:.2%}<extra></extra>"))%>%
     layout(xaxis2 = list(overlaying = "x", nticks = 10, side = "top",
                          title = "Hours/week", automargin=TRUE, size=8,

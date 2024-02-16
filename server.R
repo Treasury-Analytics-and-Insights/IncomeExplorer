@@ -32,74 +32,111 @@ shinyServer(function(input, output, session) {
   #### Selecting and/or Uploading parameter files ####
   # Get default files for SQ and Reform scenarios
   default_files <- list.files(
-    path = "inst/MFTC_calculator/App_Parameters/", pattern = "*.xlsx", full.names = TRUE
+    path = file.path(system.file(package = "IncomeExplorer"), "MFTC_calculator/App_Parameters"),
+    pattern = "*.xlsx", full.names = TRUE
   )
   default_files_names <- basename(default_files) %>%
-    tools::file_path_sans_ext() %>%
-    stringr::str_remove("IncomeExplorer_")
+    tools::file_path_sans_ext()
   names(default_files) <- default_files_names
   
   default_files_SQ <- default_files
   default_files_Reform <- default_files
   
   # Reactive values to store file choices
-  files_SQ <- reactiveValues(files = default_files_SQ, selectedFile = NULL)
-  files_Reform <- reactiveValues(files = default_files_Reform, selectedFile = NULL)
+  files_SQ <- reactiveValues(
+    files = default_files_SQ,
+    selected_file = NULL,
+    previous_selected_file = NULL
+  )
+  files_Reform <- reactiveValues(
+    files = default_files_Reform,
+    selected_file = NULL,
+    previous_selected_file = NULL
+  )
   
   # If the user chooses "Browse...", then we let them upload a file
-  observe({
+  observeEvent(input$selectedFileSQ, {
     if(input$selectedFileSQ == "Browse...") {
+      files_SQ$previous_selected_file <- files_SQ$selected_file
       showModal(
         modalDialog(
           fileInput(
             "uploadFileSQ", label = "Upload SQ file", buttonLabel = "Browse",
             multiple = FALSE, accept = c('.xlsx')
-          ), footer = NULL
+          ), footer = actionButton("cancel_sq_file_upload", label = "Cancel"), easyClose = TRUE
         )
       )
+    } else {
+      files_SQ$selected_file <- input$selectedFileSQ
     }
   })
   
-  observe({
+  observeEvent(input$selectedFileReform, {
     if(input$selectedFileReform == "Browse...") {
+      files_Reform$previous_selected_file <- files_Reform$selected_file
       showModal(
         modalDialog(
           fileInput(
             "uploadFileReform", label = "Upload Reform file", buttonLabel = "Browse",
             multiple = FALSE, accept = c('.xlsx')
-          ), footer = NULL
+          ), footer = actionButton("cancel_reform_file_upload", label = "Cancel"), easyClose = TRUE
         )
       )
+    } else {
+      files_Reform$selected_file <- input$selectedFileReform
     }
+  })
+  
+  # If the user cancels file upload, revert the selection
+  observeEvent(input$cancel_sq_file_upload, {
+    removeModal()
+    files_SQ$selected_file <- files_SQ$previous_selected_file
+    updateSelectInput(
+      session, "selectedFileSQ",
+      choices = c("", "Browse...", names(files_SQ$files)),
+      selected = files_SQ$selected_file
+    )
+  })
+  observeEvent(input$cancel_reform_file_upload, {
+    removeModal()
+    files_Reform$selected_file <- files_Reform$previous_selected_file
+    updateSelectInput(
+      session, "selectedFileReform",
+      choices = c("", "Browse...", names(files_Reform$files)),
+      selected = files_Reform$selected_file
+    )
   })
   
   # Once the user uploads a file, save the file name and datapath,
   # and close the "upload file" modal dialog
   observeEvent(input$uploadFileSQ, {
-    uploaded_file_name_SQ <- input$uploadFileSQ$name
-    if (uploaded_file_name_SQ %in% names(files_SQ$files)) {
-      uploaded_file_name_SQ <- paste0("Uploaded_SQ_", uploaded_file_name_SQ)
+    if (!is.null(input$uploadFileSQ)) {
+      uploaded_file_name_SQ <- input$uploadFileSQ$name
+      if (uploaded_file_name_SQ %in% names(files_SQ$files)) {
+        uploaded_file_name_SQ <- paste0("Uploaded_SQ_", uploaded_file_name_SQ)
+      }
+      
+      uploaded_file_path_SQ <- list(input$uploadFileSQ$datapath)
+      names(uploaded_file_path_SQ) <- uploaded_file_name_SQ
+      files_SQ$files <- c(uploaded_file_path_SQ, files_SQ$files)
+      
+      files_SQ$selected_file <- uploaded_file_name_SQ
     }
-    
-    uploaded_file_path_SQ <- list(input$uploadFileSQ$datapath)
-    names(uploaded_file_path_SQ) <- uploaded_file_name_SQ
-    files_SQ$files <- c(uploaded_file_path_SQ, files_SQ$files)
-    
-    files_SQ$selectedFile <- uploaded_file_name_SQ
-    
     removeModal()
   })
   
   observeEvent(input$uploadFileReform, {
-    uploaded_file_name_Reform <- input$uploadFileReform$name
-    if (uploaded_file_name_Reform %in% names(files_Reform$files)) {
-      uploaded_file_name_Reform <- paste0("Uploaded_Reform_", uploaded_file_name_Reform)
+    if (!is.null(input$uploadFileReform)) {
+      uploaded_file_name_Reform <- input$uploadFileReform$name
+      if (uploaded_file_name_Reform %in% names(files_Reform$files)) {
+        uploaded_file_name_Reform <- paste0("Uploaded_Reform_", uploaded_file_name_Reform)
+      }
+      uploaded_file_path_Reform <- list(input$uploadFileReform$datapath)
+      names(uploaded_file_path_Reform) <- uploaded_file_name_Reform
+      files_Reform$files <- c(uploaded_file_path_Reform, files_Reform$files)
+      
+      files_Reform$selected_file <- uploaded_file_name_Reform
     }
-    uploaded_file_path_Reform <- list(input$uploadFileReform$datapath)
-    names(uploaded_file_path_Reform) <- uploaded_file_name_Reform
-    files_Reform$files <- c(uploaded_file_path_Reform, files_Reform$files)
-    
-    files_Reform$selectedFile <- uploaded_file_name_Reform
     removeModal()
   })
   
@@ -108,7 +145,7 @@ shinyServer(function(input, output, session) {
     updateSelectInput(
       session, "selectedFileSQ",
       choices = c("", "Browse...", names(files_SQ$files)),
-      selected = files_SQ$selectedFile
+      selected = files_SQ$selected_file
     )
   })
   
@@ -116,7 +153,7 @@ shinyServer(function(input, output, session) {
     updateSelectInput(
       session, "selectedFileReform",
       choices = c("", "Browse...", names(files_Reform$files)),
-      selected = files_Reform$selectedFile
+      selected = files_Reform$selected_file
     )
   })
   
@@ -399,8 +436,7 @@ shinyServer(function(input, output, session) {
       X_SQ,
       inc_limit = X_results$max_income,
       y_min = X_results$min_y,
-      y_max = X_results$max_net_income,
-      display_cols = input$income_types
+      y_max = X_results$max_net_income
     )
   })
   
@@ -411,8 +447,7 @@ shinyServer(function(input, output, session) {
       X_Reform,
       inc_limit = X_results$max_income,
       y_min = X_results$min_y,
-      y_max = X_results$max_net_income,
-      display_cols = input$income_types
+      y_max = X_results$max_net_income
     )
   })
   
