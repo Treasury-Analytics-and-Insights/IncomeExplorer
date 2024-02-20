@@ -61,6 +61,35 @@ check_for_changed_parameters <- function(p1, p2){
   return(changed)
 }
 
+get_changes <- function(params_list) {
+  scenarios <- names(params_list)
+  if (length(scenarios) < 2) {
+    changes <- data.table()
+  } else {
+    # Calculate sequential changes
+    changes <- data.table(Parameter = "")[0]
+    for (ii in seq_len(length(scenarios) - 1)) {
+      scenario1 <- scenarios[[ii]]
+      scenario2 <- scenarios[[ii + 1]]
+      this_scenario_changes <- check_for_changed_parameters(
+        params_list[[scenario1]], params_list[[scenario2]]
+      )
+      setnames(this_scenario_changes, c("SQ", "Reform"), c(scenario1, scenario2))
+      by_cols <- "Parameter"
+      if (ii > 1) {
+        by_cols <- c(by_cols, scenario1)
+      }
+      this_scenario_changes <- this_scenario_changes[, lapply(.SD, as.character)]
+      changes <- merge(changes, this_scenario_changes, by = by_cols, all = TRUE)
+    }
+    changes <- changes[, lapply(.SD, function(x) ifelse(is.na(x), "", x))]
+    if (length(scenarios) > 1) {
+      setcolorder(changes, c("Parameter", scenarios))
+    }
+  }
+  return(changes)
+}
+
 
 
 # Plot budget contraints/income composition
@@ -239,58 +268,80 @@ amounts_net_plot <-
 
 
 # Plot two net incomes
-compare_net_income_plot <- function(EMTR_table1, EMTR_table2,
-                                    inc_limit=NULL, title=NULL,
-                                    policy_name1 = 'Status Quo',
-                                    policy_name2 = 'Policy 1',
-                                    watermark=FALSE,
-                                    weeks_in_year=52L) {
-  
-  X1 <- copy(EMTR_table1)
-  X2 <- copy(EMTR_table2)
-  
-  X1[, Net_Income_2 := X2[,.(Net_Income)]]
-
-  X1 <- X1[, .(gross_wage1, gross_wage1_annual, Net_Income, Net_Income_2)]
-  
-  X1 %<>% melt(id.vars=c('gross_wage1','gross_wage1_annual'),
-               variable.name='Scenario')
-  
-  X1[Scenario=="Net_Income", Scenario:=policy_name1] 
-  X1[Scenario=="Net_Income_2", Scenario:=policy_name2]
-  
+compare_net_income_plot <- function(input_data, weeks_in_year = 52L) {
+  income <- copy(input_data)
   #convert weekly income to annual
-  X1[, value:=value*weeks_in_year]
+  income[, Net_Income := Net_Income*weeks_in_year]
+  income[, Scenario := factor(Scenario, levels = unique(Scenario))]
+  output_plot <- plot_ly(
+    data = income, x = ~gross_wage1_annual, y = ~Net_Income, split = ~Scenario,
+    mode = "lines", type = "scatter", showlegend = TRUE,
+    line = list(color = tsy_palette, width = 3),
+    customdata = ~Scenario,
+    hovertemplate = "%{customdata}: %{y:$,.2f} <extra></extra>"
+  ) %>%
+    add_trace(
+      x = ~hours1, y = 0, xaxis = "x2", showlegend = FALSE, inherit = FALSE,
+      type = "scatter", mode = "none"
+    ) %>%
+    layout(
+      xaxis2 = list(
+        overlaying = "x", nticks = 10, side = "top",
+        title = "Hours/week", automargin = TRUE, size = 8, showline = TRUE
+      ),
+      xaxis = list(
+        title = "Annual gross wage income ($)",
+        tickformat = "$,", automargin = TRUE, showline = TRUE, mirror = TRUE
+      ),
+      yaxis = list(
+        title = "Income ($)", tickformat = "$,", 
+        automargin = TRUE, showline = TRUE,  mirror = TRUE, rangemode = "tozero"
+      ),
+      legend = list(x = 100, y = 0.5),
+      hovermode = "x"
+    )
+  return(output_plot)
+}
+
+plot_rates <- function(input_data, rate_type, ylabel) {
+  income <- copy(input_data)
+  income[, Scenario := factor(Scenario, levels = unique(Scenario))]
+  setnames(income, rate_type, "y")
   
+  if (rate_type == "Participation_Tax_Rate") {
+    # Drop zero since PTR is undefined
+    income <- income[gross_wage1_annual != 0]
+  }
   
-  X1 %>% dcast(gross_wage1 + gross_wage1_annual ~ Scenario) %>% 
-    plot_ly(x = ~gross_wage1_annual,
-            y = ~`Status Quo`, name = policy_name1, 
-            mode = "lines", type = 'scatter',
-            line = list(color = tsy_palette[1], width = 3),
-            hovertemplate = 
-              paste0(
-                "Annual gross wage income:\n %{x:$,.2f} \n",
-                policy_name1, ": %{y:$,.2f} <extra></extra>")) %>% 
-    add_trace(y = ~`Reform`, name = policy_name2,
-              mode = "lines", type = 'scatter', 
-              line = list(color = tsy_palette[2], width = 3, dash = 'dot'),
-              hovertemplate =
-                paste0(policy_name2, ": %{y:$,.2f}  <extra></extra>"))%>%
-    add_trace(data=EMTR_table1, x = ~hours1, y = ~0, xaxis = "x2",
-              showlegend=FALSE, inherit=FALSE,
-              hoverinfo="none", type = "scatter", mode = "none") %>%
-    layout(xaxis2 = list(overlaying = "x", nticks = 10, side = "top",
-                         title = "Hours/week", automargin=TRUE, size=8,
-                         showline = TRUE),
-           xaxis = list(title = "Annual gross wage income ($)", 
-                        tickformat = "$,", automargin=TRUE,
-                        showline = TRUE, mirror=TRUE),
-           yaxis = list (title = "Income ($)", tickformat = "$,", 
-                         automargin=TRUE,
-                         showline = TRUE,  mirror=TRUE),
-           legend = list(x = 100, y = 0.5),
-           hovermode = "x") 
+  output_plot <- plot_ly(
+    data = income, x = ~gross_wage1_annual, y = ~y, split = ~Scenario,
+    mode = "lines", type = "scatter", showlegend = TRUE,
+    line = list(color = tsy_palette, width = 3),
+    customdata = ~Scenario,
+    hovertemplate = "%{customdata}: %{y:.2%} <extra></extra>"
+  ) %>%
+    add_trace(
+      x = ~hours1, y = ~0, xaxis = "x2", showlegend = FALSE, inherit = FALSE,
+      type = "scatter", mode = "none"
+    ) %>%
+    layout(
+      xaxis2 = list(
+        overlaying = "x", nticks = 10, side = "top",
+        title = "Hours/week", automargin = TRUE, size = 8, showline = TRUE
+      ),
+      xaxis = list(
+        title = "Annual gross wage income ($)",
+        tickformat = "$,", automargin = TRUE, showline = TRUE, mirror = TRUE
+      ),
+      yaxis = list(
+        title = ylabel, tickformat = ".0%", 
+        automargin = TRUE, showline = TRUE,  mirror = TRUE,
+        range = c(0, 1.1)
+      ),
+      legend = list(x = 100, y = 0.5),#list(orientation = "h", xanchor = "center", x = 0.5),
+      hovermode = "x"
+    )
+  return(output_plot)
 }
 
 
@@ -404,7 +455,7 @@ choose_IWTC_or_benefit <- function(X, X_without_IWTC) {
   With_IWTC <- X[With_IWTC_indices]
   Without_IWTC <- X_without_IWTC[Without_IWTC_indices]
   
-  X <- rbind(With_IWTC, Without_IWTC)
+  X <- rbind(With_IWTC, Without_IWTC, fill = TRUE)
   setorderv(X, "hours1")
   
   X[, EMTR := 1 - 1L*(shift(Net_Income,1L,type="lead")-Net_Income)]
