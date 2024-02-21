@@ -5,6 +5,7 @@
 
 suppressMessages({
   library(shiny)
+  library(shinyjs)
   library(openxlsx)
   library(rhandsontable)
   library(magrittr)
@@ -53,40 +54,42 @@ shinyServer(function(input, output, session) {
   # Enable download buttons only when a selection exists
   observe({
     if (!is.null(input$select_scenarios)) {
-      shinyjs::enable("download_params_button")
-      shinyjs::enable("download_results_button")
+      enable("download_params_button")
+      enable("download_results_button")
     } else {
-      shinyjs::disable("download_params_button")
-      shinyjs::disable("download_results_button")
+      disable("download_params_button")
+      disable("download_results_button")
     }
   })
   
   # Show a modal dialog when the upload_scenario_button is clicked
-  observeEvent(input$upload_scenario_button, {
+  observeEvent(input$upload_scenarios_button, {
     showModal(
       modalDialog(
         fileInput(
-          "upload_scenario_file", label = "Upload scenario", buttonLabel = "Browse",
-          multiple = FALSE, accept = c('.xlsx'),
+          "upload_scenario_files", label = "Upload scenarios", buttonLabel = "Browse",
+          multiple = TRUE, accept = c('.xlsx'),
         ), footer = modalButton("Close"), easyClose = TRUE
       )
     )
   })
   
   # Add a scenario to the list when a new scenario file is uploaded
-  observeEvent(input$upload_scenario_file, {
-    new_scenario <- input$upload_scenario_file
-    req(new_scenario)
-    new_scenario_name <- new_scenario$name %>% tools::file_path_sans_ext()
-    if (new_scenario_name %in% names(scenarios$files)) {
-      # Avoid using an existing name
-      new_scenario_name <- paste0("Uploaded_", new_scenario_name)
+  observeEvent(input$upload_scenario_files, {
+    new_scenarios <- input$upload_scenario_files
+    req(new_scenarios)
+    new_scenario_names <- new_scenarios$name %>% tools::file_path_sans_ext()
+    overlapping_names <- intersect(new_scenario_names, names(scenarios$files))
+    for (overlapping_name in overlapping_names) {
+      # Avoid using any existing names
+      new_scenario_names[new_scenario_names == overlapping_name] <-
+        paste0("Uploaded_", overlapping_name)
     }
-    new_scenario_file <- list(new_scenario$datapath)
-    names(new_scenario_file) <- new_scenario_name
+    new_scenario_files <- as.list(new_scenarios$datapath)
+    names(new_scenario_files) <- new_scenario_names
     
-    scenarios$newly_uploaded <- new_scenario_name
-    scenarios$files <- c(new_scenario_file, scenarios$files)
+    scenarios$newly_uploaded <- new_scenario_names
+    scenarios$files <- c(new_scenario_files, scenarios$files)
     
     removeModal()
   })
@@ -95,149 +98,79 @@ shinyServer(function(input, output, session) {
   # Loading parameters from files and calculating incomes
   #######################################################
   
-  parameters <- eventReactive(input$select_scenarios, {
-    parameter_files <- scenarios$files[input$select_scenarios]
-    parameters <- lapply(parameter_files, parameters_from_file)
-    names(parameters) <- input$select_scenarios
-    print("Reloaded parameters")
-    return(parameters)
+  get_params <- reactive({
+    selected_scenarios <- req(input$select_scenarios)
+    params_files <- req(scenarios$files[selected_scenarios])
+    params <- lapply(params_files, parameters_from_file)
+    names(params) <- selected_scenarios
+    return(params)
   })
   
-  # calculate incomes
-  calculate_income <- reactive({
-    params_list <- parameters()
-    req(length(params_list) > 0)
-    
-    # convert inputs
-    MAX_WAGE <- input$max_hours*input$wage1_hourly
-    children <- convert_ages(input$Children_ages)
-    
-    if (input$Acc_type == "Renting"){
-      AS_Accommodation_Rent <- TRUE
-    } else {
-      AS_Accommodation_Rent <- FALSE
-    }
-    
-    if (input$Partnered == 1){
-      partner_wages <- input$gross_wage2*input$hours2
-      partner_hours <- input$hours2
-    } else {
-      partner_wages <- 0
-      partner_hours <- 0
-    }
-    
-    # Create helper emtr function using current inputs
-    hot_emtr <- function(params) {
-      emtr_df <- emtr(
-        # System parameters
-        params,
-        # Family parameters
-        input$Partnered, input$wage1_hourly, children, partner_wages, partner_hours,
-        input$AS_Accommodation_Costs, AS_Accommodation_Rent, as.numeric(input$AS_Area),
-        pov_thresholds = input$pov_thresholds,bhc_median = input$bhc_median,
-        ahc_median = input$ahc_median,
-        # Presentation parameters
-        max_wage = MAX_WAGE, steps_per_dollar = 1L, weeks_in_year = 52L,
-        MFTC_WEP_scaling = as.numeric(input$MFTC_WEP_scaling)
-      )
-      return(emtr_df)
-    }
-    
-    X_results <- lapply(params_list, hot_emtr)
-    names(X_results) <- names(params_list)
-    
-    X_results <- rbindlist(X_results, idcol = "Scenario")
-    
-    # MFTC is meant to make families always better off being off-benefit than staying
-    # on a benefit. We let the user set whether the family stays on benefit
-    # or gets IWTC when they work, with the parameter input$WFFBEN_SQ. This can be:
-    # "Max" - choose the option which maximises the family income.
-    # "WFF" - go off the benefit while working, and get IWTC + MFTC.
-    # "Benefit" - stay on the benefit while working, and never get IWTC or MFTC
-    #             (benefit abates away as earned income increases).
-    # Note that these are only applicable when beneficiaries are ineligible for IWTC;
-    # MFTC eligibility currently depends on IWTC eligibility in the `emtr` function.
-    
-    scenario_names <- X_results[, unique(Scenario)]
-    
-    if (input$WFFBEN_SQ != "WFF") {
-      SQ_params_with_no_IWTC <- remove_IWTC_from_params(params_list[[1]])
-      X_SQ <- X_results[Scenario == first(Scenario)]
-      X_SQ_without_IWTC <- hot_emtr(SQ_params_with_no_IWTC)
-      
-      if (input$WFFBEN_SQ == "Max") {
-        # Choose which of benefit or IWTC gives max net income
-        X_SQ <- choose_IWTC_or_benefit(X_SQ, X_SQ_without_IWTC)
-        
-      } else if (input$WFFBEN_SQ == "Benefit") {
-        X_SQ <- X_SQ_without_IWTC
-      }
-      X_SQ[, Scenario := scenario_names[1]]
-      X_results <- rbind(X_results[Scenario != first(Scenario)], X_SQ, fill = TRUE)
-    }
-    
-    if (length(scenario_names) > 1) {
-      for (scenario_name in scenario_names[2:length(scenario_names)]) {
-        if (input$WFFBEN_reform != "WFF") {
-          Reform_params_with_no_IWTC <- remove_IWTC_from_params(params_list[[scenario_name]])
-          X_Reform <- X_results[Scenario == scenario_name]
-          X_Reform_without_IWTC <- hot_emtr(Reform_params_with_no_IWTC)
-          
-          if (input$WFFBEN_reform == "Max") {
-            # Choose which of benefit or IWTC gives max net income
-            X_Reform <- choose_IWTC_or_benefit(X_Reform, X_Reform_without_IWTC)
-            
-          }  else if (input$WFFBEN_reform == "Benefit") {
-            X_Reform <- X_Reform_without_IWTC
-          }
-          X_Reform[, Scenario := scenario_name]
-          X_results <- rbind(X_results[Scenario != scenario_name], X_Reform, fill = TRUE)
-        }
-      }
-    }
-    
-    X_results[, Scenario := factor(Scenario, levels = scenario_names)]
-    
-    return(X_results)
+  get_scenario_income <- function(params) {
+    scenario_income <- calculate_income(
+      # System parameters
+      params,
+      # Family parameters
+      max_hours = input$max_hours,
+      hourly_wage = input$wage1_hourly,
+      children_ages = input$Children_ages,
+      # Partner parameters
+      partnered = input$Partnered,
+      partner_wages = input$gross_wage2,
+      partner_hours = input$hours2,
+      # Accommodation parameters
+      accommodation_type = input$Acc_type,
+      as_accommodation_costs = input$AS_Accommodation_Costs,
+      as_area = as.numeric(input$AS_Area),
+      # Presentation parameters
+      steps_per_dollar = 1L,
+      weeks_in_year = 52L
+    )
+    return(scenario_income)
+  }
+  
+  #### Join cached incomes together as one data.table ####
+  get_scenario_incomes <- reactive({
+    params <- get_params()
+    scenario_income_list <- lapply(params, get_scenario_income)
+    names(scenario_income_list) <- names(params)
+    scenario_incomes <- rbindlist(scenario_income_list, idcol = "Scenario")
+    return(scenario_incomes)
   })
   
   #### Net Income plot ####
   output$plot_netincome <- renderPlotly({
-    X_results <- req(calculate_income())
+    X_results <- req(get_scenario_incomes())
     output_plot <- compare_net_income_plot(X_results)
-    print("Plotting Net Income")
     return(output_plot)
   })
   
   #### EMTR plot ####
   output$plot_emtr <- renderPlotly({
-    X_results <- req(calculate_income())
+    X_results <- req(get_scenario_incomes())
     output_plot <- plot_rates(X_results, "EMTR", "Effective Marginal Tax Rate")
-    print("Plotting EMTR")
     return(output_plot)
   })
   
   #### RR plot ####
   output$plot_replacement_rate <- renderPlotly({
-    X_results <- req(calculate_income())
+    X_results <- req(get_scenario_incomes())
     output_plot <- plot_rates(X_results, "Replacement_Rate", "Replacement Rate")
-    print("Plotting RR")
     return(output_plot)
   })
   
   #### PTR plot ####
   output$plot_participation_tax_rate <- renderPlotly({
-    X_results <- req(calculate_income())
+    X_results <- req(get_scenario_incomes())
     output_plot <- plot_rates(X_results, "Participation_Tax_Rate", "Participation Tax Rate")
-    print("Plotting PTR")
     return(output_plot)
   })
   
   #### Income composition plots ####
   selected_income_composition_tab <- reactiveValues(tab = NULL)
   
+  # Render a tab for each scenario
   output$income_composition_tabs <- renderUI({
-    current_tab <- isolate(selected_income_composition_tab$tab)
     do.call(tabsetPanel, c(
       id = "income_composition_tabs",
       lapply(input$select_scenarios, function(scenario) {
@@ -246,52 +179,54 @@ shinyServer(function(input, output, session) {
           plotlyOutput(paste0("plot_income_composition_", scenario), height = "500px")
         )
       }),
-      selected = current_tab, type = "pills"
+      selected = selected_income_composition_tab$tab, type = "pills"
     ))
   })
   
+  # When the input selection changes, update the plot for each scenario
   observeEvent(input$select_scenarios, {
     for (scenario in input$select_scenarios) {
       plot_id <- paste0("plot_income_composition_", scenario)
       observe({
-        X_results <- req(calculate_income())
+        X_results <- req(get_scenario_incomes())
         output[[plot_id]] <- renderPlotly({
-          amounts_net_plot(X_results[Scenario == scenario])
+          income_composition_plot(X_results[Scenario == scenario])
         })
       })
     }
+    # Remember which tab we were on
     selected_income_composition_tab$tab <- input$income_composition_tabs
   })
   
   #### Changed parameters ####
-  param_changes <- eventReactive(parameters(), {
-    scenarios <- input$select_scenarios
-    params_list <- parameters()
-    changes <- get_changes(params_list)
-    return(changes)
-  })
-  
   output$changed_parameters <- renderTable({
-    param_changes()
+    get_parameter_changes(get_params())
   })
   
   #### Download parameters for all selected scenarios, in a single zip file ####
   output$download_params_button <- downloadHandler(
     filename = function() {
-      "Scenarios.zip"
+      if (length(input$select_scenarios) == 1) {
+        paste0(input$select_scenarios, ".xlsx")
+      } else {
+        "Scenarios.zip"
+      }
     },
     content = function(file) {
-      temp_directory <- file.path(tempdir(), as.integer(Sys.time()))
-      dir.create(temp_directory)
-      selected_file_names <- input$select_scenarios
-      for (selected_file_name in selected_file_names) {
-        selected_file_path <- scenarios$files[[selected_file_name]]
-        output_file_path <- file.path(temp_directory, paste0(selected_file_name, ".xlsx"))
-        file.copy(selected_file_path, output_file_path)
+      if (length(input$select_scenarios) == 1) {
+        file.copy(scenarios$files[[input$select_scenarios]], file)
+      } else {
+        temp_directory <- file.path(tempdir(), as.integer(Sys.time()))
+        dir.create(temp_directory)
+        selected_file_names <- input$select_scenarios
+        for (selected_file_name in selected_file_names) {
+          selected_file_path <- scenarios$files[[selected_file_name]]
+          output_file_path <- file.path(temp_directory, paste0(selected_file_name, ".xlsx"))
+          file.copy(selected_file_path, output_file_path)
+        }
+        zip::zip(zipfile = file, files = dir(temp_directory), root = temp_directory)
       }
-      zip::zip(zipfile = file, files = dir(temp_directory), root = temp_directory)
-    },
-    contentType = "application/zip"
+    }
   )
   
   #### Download everything ####
@@ -300,8 +235,10 @@ shinyServer(function(input, output, session) {
       "IncomeExplorerResults.xlsx"
     },
     content = function(file) {
-      X_results <- calculate_income()
-      parameter_differences <- param_changes()
+      scenario_incomes <- get_scenario_incomes()
+      scenario_names <- scenario_incomes[, unique(Scenario)]
+      
+      parameter_differences <- get_parameter_changes(get_params())
       
       wb <- openxlsx::createWorkbook()
       
@@ -317,18 +254,20 @@ shinyServer(function(input, output, session) {
         Children_Ages = input$Children_ages
       )
       
-      openxlsx::addWorksheet(wb, 'Details')
-      openxlsx::writeData(wb, 'Details', names(details), startCol=1)
-      openxlsx::writeData(wb, 'Details', details, startCol=2)
+      openxlsx::addWorksheet(wb, "Details")
+      openxlsx::writeData(wb, "Details", names(details), startCol = 1)
+      openxlsx::writeData(wb, "Details", details, startCol = 2)
       
-      # Parameters that changed
-      openxlsx::addWorksheet(wb, 'Scenario Differences')
-      openxlsx::writeData(wb, 'Scenario Differences', parameter_differences)
+      if (length(scenario_names) > 1) {
+        # Parameters that changed
+        openxlsx::addWorksheet(wb, "Scenario Differences")
+        openxlsx::writeData(wb, "Scenario Differences", parameter_differences)
+      }
       
       # Full sets of results (should probably be more selective)
-      for (scenario in X_results[, unique(Scenario)]) {
+      for (scenario in scenario_names) {
         openxlsx::addWorksheet(wb, scenario)
-        openxlsx::writeData(wb, scenario, X_results[Scenario == scenario])
+        openxlsx::writeData(wb, scenario, scenario_incomes[Scenario == scenario])
       }
       
       openxlsx::saveWorkbook(wb, file, overwrite = TRUE)

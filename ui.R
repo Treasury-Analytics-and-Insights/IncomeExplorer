@@ -37,7 +37,7 @@ shinyUI(fluidPage(
       fluidRow(
         column(
           12, align = "right",
-          actionButton("upload_scenario_button", "Add scenario", icon = shiny::icon("plus")),
+          actionButton("upload_scenarios_button", "Add scenarios", icon = shiny::icon("plus")),
           downloadButton("download_params_button", "Scenarios"),
           downloadButton("download_results_button", "Results")
         )
@@ -95,31 +95,7 @@ shinyUI(fluidPage(
             min = 0, max = 80, value = 0, step = 5
           )
         ))
-      ),
-      checkboxInput("Advanced", "Advanced", value = FALSE),
-      conditionalPanel(
-        condition = "input.Advanced == 1",
-        fluidRow(
-          column(12, selectInput(
-            "MFTC_WEP_scaling", "Winter Energy Payment",
-            c("Average week" = 1, "Winter week" = 12/5, "Summer week" = 0),
-            selected = "Average week"
-          ))
-        ),
-        # Input to allow the user to choose situations of people
-        # stay on benefit, or on WFF or showing the maximum amount
-        # between the two options
-        fluidRow(
-          column(6, selectInput(
-            "WFFBEN_SQ", "Scenario one: work or stay on benefit?",
-            c("Max", "WFF", "Benefit"), selected = "Max"
-          )),
-          column(6, selectInput(
-            "WFFBEN_reform", "Scenarios 2+: work or stay on benefit?",
-            c("Max", "WFF", "Benefit"), selected = "Max"
-          ))
-        )
-      ),
+      )
     ),
     # Main panel containing plots etc.
     mainPanel(
