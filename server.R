@@ -216,23 +216,24 @@ shinyServer(function(input, output, session) {
   #### Download parameters for all selected scenarios, in a single zip file ####
   output$download_params_button <- downloadHandler(
     filename = function() {
-      if (length(input$select_scenarios) == 1) {
-        paste0(input$select_scenarios, ".xlsx")
+      params <- get_params()
+      if (length(params) == 1) {
+        paste0(names(params), ".yaml")
       } else {
         "Scenarios.zip"
       }
     },
     content = function(file) {
-      if (length(input$select_scenarios) == 1) {
-        file.copy(scenarios$files[[input$select_scenarios]], file)
+      # Create new files from the loaded parameters
+      params <- get_params()
+      if (length(params) == 1) {
+        yaml::write_yaml(params[[1]], file)
       } else {
         temp_directory <- file.path(tempdir(), as.integer(Sys.time()))
         dir.create(temp_directory)
-        selected_file_names <- input$select_scenarios
-        for (selected_file_name in selected_file_names) {
-          selected_file_path <- scenarios$files[[selected_file_name]]
-          output_file_path <- file.path(temp_directory, paste0(selected_file_name, ".xlsx"))
-          file.copy(selected_file_path, output_file_path)
+        for (scenario in names(params)) {
+          output_file_path <- file.path(temp_directory, paste0(scenario, ".yaml"))
+          yaml::write_yaml(params[[scenario]], output_file_path)
         }
         zip::zip(zipfile = file, files = dir(temp_directory), root = temp_directory)
       }

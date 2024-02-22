@@ -137,17 +137,19 @@ get_parameter_changes <- function(params_list) {
       this_scenario_changes <- check_for_changed_parameters(
         params_list[[scenario1]], params_list[[scenario2]]
       )
-      setnames(this_scenario_changes, c("SQ", "Reform"), c(scenario1, scenario2))
-      by_cols <- "Parameter"
-      if (ii > 1) {
-        by_cols <- c(by_cols, scenario1)
+      if (nrow(this_scenario_changes) != 0) {
+        setnames(this_scenario_changes, c("SQ", "Reform"), c(scenario1, scenario2))
+        by_cols <- "Parameter"
+        if (ncol(changes) > 1) {
+          by_cols <- c(by_cols, scenario1)
+        }
+        this_scenario_changes <- this_scenario_changes[, lapply(.SD, as.character)]
+        changes <- merge(changes, this_scenario_changes, by = by_cols, all = TRUE)
       }
-      this_scenario_changes <- this_scenario_changes[, lapply(.SD, as.character)]
-      changes <- merge(changes, this_scenario_changes, by = by_cols, all = TRUE)
     }
     changes <- changes[, lapply(.SD, function(x) ifelse(is.na(x), "", x))]
     if (length(scenarios) > 1) {
-      setcolorder(changes, c("Parameter", scenarios))
+      setcolorder(changes, c("Parameter"))
     }
   }
   return(changes)
