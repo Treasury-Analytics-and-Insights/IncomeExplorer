@@ -17,11 +17,11 @@
 #' @family Utilities
 #' @export
 Abate <- function(Cond, Amount, Scale, Income){
-  Scale_Rows <- nrow(Scale)
-  for (Row in 2:Scale_Rows){
-    Amount <- Amount - Cond * pmax(0, pmin(Scale[Row, 1], Income) - Scale[Row - 1, 1]) * Scale[Row - 1, 2]
+  Scale_Items <- length(Scale[[1]])
+  for (Item in 2:Scale_Items){
+    Amount <- Amount - Cond * pmax(0, pmin(Scale[['thresholds']][Item], Income) - Scale[['thresholds']][Item - 1]) * Scale[['rates']][Item - 1]
   }
-  Amount <- Amount - Cond * pmax(0, Income - Scale[Scale_Rows, 1]) * Scale[Scale_Rows, 2]
+  Amount <- Amount - Cond * pmax(0, Income - Scale[['thresholds']][Scale_Items]) * Scale[['rates']][Scale_Items]
   return(pmax(0, Amount))
 }
 attr(Abate, "utility") <- T
@@ -39,16 +39,16 @@ attr(Abate, "utility") <- T
 #' @export
 Abatement_Vanishing_Point <- function(Scale, Amount){
   # Not vectorised - but it doesn't need to be!
-  n <- nrow(Scale)
+  n <- length(Scale[[1]])
   for (Th in 1:(n-1)){
-    if (Scale[Th, 2] == 0) next
-    if (Scale[Th, 1] + Amount/Scale[Th, 2] > Scale[Th + 1, 1]){
-      Amount = Amount - Scale[Th, 2]*(Scale[Th + 1, 1] - Scale[Th, 1])
+    if (Scale[['rates']][Th] == 0) next
+    if (Scale[['thresholds']][Th] + Amount/Scale[['rates']][Th] > Scale[['thresholds']][Th + 1]){
+      Amount = Amount - Scale[['rates']][Th]*(Scale[['thresholds']][Th + 1] - Scale[['thresholds']][Th])
     } else {
-      return(Scale[Th, 1] + Amount/Scale[Th, 2])
+      return(Scale[['thresholds']][Th] + Amount/Scale[['rates']][Th])
     }
   }
-  return(Scale[n, 1] + Amount/Scale[n, 2])
+  return(Scale[['thresholds']][n] + Amount/Scale[['rates']][n])
 }
 attr(Abatement_Vanishing_Point, "utility") <- T
 
@@ -64,15 +64,21 @@ attr(Abatement_Vanishing_Point, "utility") <- T
 #' @export
 Apply <- function(Amount, Tax_Scale){
   Tax <- 0
-  n <- nrow(Tax_Scale)
+  n <- length(Tax_Scale[[1]])
   for (Th in 1:(n-1)){
-    Tax <- Tax + (pmin(pmax(Amount, Tax_Scale[Th, 1]), Tax_Scale[Th + 1, 1]) - Tax_Scale[Th, 1])*Tax_Scale[Th, 2]
+    Tax <- Tax + (pmin(pmax(Amount, Tax_Scale[['thresholds']][Th]), Tax_Scale[['thresholds']][Th + 1]) - Tax_Scale[['thresholds']][Th])*Tax_Scale[['rates']][Th]
   }
-  return(Tax + pmax(0, Amount - Tax_Scale[n, 1])*Tax_Scale[n, 2])
+  return(Tax + pmax(0, Amount - Tax_Scale[['thresholds']][n])*Tax_Scale[['rates']][n])
 }
 attr(Apply, "utility") <- T
 
-
+Net_Thresholds <- function(Tax_BaseScale) {
+  NIT <- c(0)
+  for (band in 2:length(Tax_BaseScale$thresholds)){
+    NIT <- c(NIT, tail(NIT, 1) + (Tax_BaseScale$thresholds[band] - Tax_BaseScale$thresholds[band-1]) * (1 - Tax_BaseScale$rates[[band-1]]))
+  }
+  return(NIT)
+}
 
 Gross_From_Net <- function(Amount, Net_Thresholds, Tax_Scale){
   Levels <- length(Net_Thresholds)
@@ -80,13 +86,11 @@ Gross_From_Net <- function(Amount, Net_Thresholds, Tax_Scale){
   Gross <- 0*Amount
   for (Th in 2:Levels){
     Gross <- Gross + (Amount < Net_Thresholds[Th] & Amount >= Net_Thresholds[Th - 1])*
-      (Tax_Scale[Th-1, 1] + (Amount - Old) / (1 - Tax_Scale[Th - 1, 2]))
-    #print(Tax_Scale[Th-1, 1])
-    #print((Amount - Old) / (1 - Tax_Scale[Th - 1, 2]))
+      (Tax_Scale$thresholds[Th-1] + (Amount - Old) / (1 - Tax_Scale$rates[Th - 1]))
     Old <- Net_Thresholds[Th]
   }
   return(Gross + (Amount > Net_Thresholds[Levels]) * 
-           (Tax_Scale[Levels, 1] + (Amount - Old) / (1 - Tax_Scale[Levels, 2])))
+           (Tax_Scale$thresholds[Levels] + (Amount - Old) / (1 - Tax_Scale$rates[Levels])))
 }
 attr(Gross_From_Net, "utility") <- T
 

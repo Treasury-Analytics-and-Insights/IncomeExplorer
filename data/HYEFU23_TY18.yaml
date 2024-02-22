@@ -1,0 +1,107 @@
+modelyear: 2018.0
+ACC_LevyRate: 0.0139
+ACC_MaxLeviableIncome: 124053.0
+Accommodation_AbatementRate: 0.25
+Accommodation_BaseRateThreshold_Mortgage: 0.3
+Accommodation_BaseRateThreshold_Rent: 0.25
+Accommodation_MaxRate_CoupleDeps_Single2_Deps_Area1: 225.0
+Accommodation_MaxRate_CoupleDeps_Single2_Deps_Area2: 165.0
+Accommodation_MaxRate_CoupleDeps_Single2_Deps_Area3: 120.0
+Accommodation_MaxRate_CoupleDeps_Single2_Deps_Area4: 75.0
+Accommodation_MaxRate_CoupleNoDeps_Single1Dep_Area1: 160.0
+Accommodation_MaxRate_CoupleNoDeps_Single1Dep_Area2: 125.0
+Accommodation_MaxRate_CoupleNoDeps_Single1Dep_Area3: 75.0
+Accommodation_MaxRate_CoupleNoDeps_Single1Dep_Area4: 55.0
+Accommodation_MaxRate_SingleNoDeps_Area1: 145.0
+Accommodation_MaxRate_SingleNoDeps_Area2: 100.0
+Accommodation_MaxRate_SingleNoDeps_Area3: 65.0
+Accommodation_MaxRate_SingleNoDeps_Area4: 45.0
+Accommodation_PaymentPercentage: 0.7
+Benefits_JSS_AbatementScale:
+  thresholds:
+  - 0.0
+  - 4176.0
+  rates:
+  - 0.0
+  - 0.7
+Benefits_JSS_CoupleAbatementScale:
+  thresholds:
+  - 0.0
+  - 4176.0
+  rates:
+  - 0.0
+  - 0.35
+Benefits_JSS_Rate_Couple: 177.03
+Benefits_JSS_Rate_CoupleParent: 189.67
+Benefits_JSS_Rate_Single: 212.45
+Benefits_JSS_Rate_SoleParent: 329.57
+Benefits_SPS_AbatementScale:
+  thresholds:
+  - 0.0
+  - 5220.0
+  - 10440.0
+  rates:
+  - 0.0
+  - 0.3
+  - 0.7
+Benefits_SPS_Rate: 329.57
+Benefits_Entitlement_Age_SPS_ChildLowerBound: 14.0
+Benefits_WinterEnergy_Rates_Single: 0.0
+Benefits_WinterEnergy_Rates_CoupleOrDeps: 0.0
+FamilyAssistance_Abatement_AbatementScale:
+  thresholds:
+  - 0.0
+  - 36350.0
+  rates:
+  - 0.0
+  - 0.225
+FamilyAssistance_Abatement_Order: 0.0
+FamilyAssistance_FTC_Rates_FirstChild: 4822.0
+FamilyAssistance_FTC_Rates_SubsequentChild: 3351.0
+FamilyAssistance_IWTC_Rates_UpTo3Children: 3770.0
+FamilyAssistance_IWTC_Rates_SubsequentChildren: 780.0
+FamilyAssistance_IWTC_Eligibility: 0.0
+FamilyAssistance_FullTimeWorkingHours_Couple: 30.0
+FamilyAssistance_FullTimeWorkingHours_Single: 20.0
+FamilyAssistance_IWTC_IncomeThreshold_Single: 0.0
+FamilyAssistance_IWTC_IncomeThreshold_Couple: 0.0
+FamilyAssistance_IWTC_ToBeneficiaries: 0.0
+FamilyAssistance_IWTC_PhaseIn_Single:
+  thresholds: 0.0
+  rates: 0.0
+FamilyAssistance_IWTC_PhaseIn_Couple:
+  thresholds: 0.0
+  rates: 0.0
+FamilyAssistance_MFTC_Rates_MinimumIncome: 23816.0
+FamilyAssistance_BestStart_Abatement_AbatementScale:
+  thresholds:
+  - 0.0
+  - 79000.0
+  rates:
+  - 0.0
+  - 0.21
+FamilyAssistance_BestStart_Rates_Age0: 0.0
+FamilyAssistance_BestStart_Rates_Age1or2: 0.0
+IETC_AbatementScale:
+  thresholds:
+  - 0.0
+  - 44000.0
+  rates:
+  - 0.0
+  - 0.13
+IETC_MinimalIncome: 24000.0
+IETC_PerYear: 520.0
+IETC_OnlyFamiliesWithoutChildren: 0.0
+Tax_BaseScale:
+  thresholds:
+  - 0.0
+  - 14000.0
+  - 48000.0
+  - 70000.0
+  rates:
+  - 0.105
+  - 0.175
+  - 0.3
+  - 0.33
+MFTC_WEP_scaling: 1.0
+WFF_or_Benefit: Max

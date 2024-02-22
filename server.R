@@ -24,6 +24,7 @@ shinyServer(function(input, output, session) {
       "This software is provided as-is, for research purposes only, ",
       "with absolutely no warranty or guarantee of correctness."
     ),
+    footer = actionButton("close_warning", "Dismiss"),
     easyClose = FALSE, fade = FALSE
   )
   
@@ -33,26 +34,36 @@ shinyServer(function(input, output, session) {
   #### Selecting and/or Uploading parameter files ####
   # Get default parameter files for scenarios
   default_files <- list.files(
-    path = file.path(system.file(package = "IncomeExplorer"), "MFTC_calculator/App_Parameters"),
-    pattern = "*.xlsx", full.names = TRUE
+    path = "data", pattern = glob2rx("*.yaml"), full.names = TRUE
   )
   default_files_names <- basename(default_files) %>% tools::file_path_sans_ext()
   names(default_files) <- default_files_names
   
   # Store scenario files in a reactive variable
-  scenarios <- reactiveValues(files = default_files, newly_uploaded = NULL)
+  scenarios <- reactiveValues(files = default_files)
+  
+  # When the warning dialog is closed, update the selection to add
+  # default scenarios as choices - this is a workaround for a shinylive issue
+  # because with normal R shiny the observeEvent after this one updates it for us
+  observeEvent(input$close_warning, {
+    updateSelectizeInput(
+      session, "select_scenarios",
+      choices = names(scenarios$files), selected = NULL
+    )
+    removeModal()
+  })
   
   # Update selection inputs when the available scenario files change
   observeEvent(scenarios$files, {
-    selected_files <- c(input$select_scenarios, scenarios$newly_uploaded)
     updateSelectizeInput(
       session, "select_scenarios",
-      choices = names(scenarios$files), selected = selected_files
+      choices = names(scenarios$files), selected = input$select_scenarios
     )
   })
   
   # Enable download buttons only when a selection exists
   observe({
+    req(input$select_scenarios)
     if (!is.null(input$select_scenarios)) {
       enable("download_params_button")
       enable("download_results_button")
@@ -68,7 +79,7 @@ shinyServer(function(input, output, session) {
       modalDialog(
         fileInput(
           "upload_scenario_files", label = "Upload scenarios", buttonLabel = "Browse",
-          multiple = TRUE, accept = c('.xlsx'),
+          multiple = TRUE, accept = c(".xlsx", ".xls", ".yaml", ".yml"),
         ), footer = modalButton("Close"), easyClose = TRUE
       )
     )
@@ -88,7 +99,6 @@ shinyServer(function(input, output, session) {
     new_scenario_files <- as.list(new_scenarios$datapath)
     names(new_scenario_files) <- new_scenario_names
     
-    scenarios$newly_uploaded <- new_scenario_names
     scenarios$files <- c(new_scenario_files, scenarios$files)
     
     removeModal()
@@ -129,7 +139,7 @@ shinyServer(function(input, output, session) {
     return(scenario_income)
   }
   
-  #### Join cached incomes together as one data.table ####
+  #### Join incomes together as one data.table ####
   get_scenario_incomes <- reactive({
     params <- get_params()
     scenario_income_list <- lapply(params, get_scenario_income)

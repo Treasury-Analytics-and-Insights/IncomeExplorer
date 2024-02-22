@@ -1,9 +1,49 @@
 parameters_from_file <- function(parameters_file) {
-  parameters_df <- openxlsx::read.xlsx(parameters_file)
-  parameters <- parameters_from_df(parameters_df)
+  params_type <- tools::file_ext(parameters_file)
+  if (params_type %in% c("xlsx", "xls")) {
+    parameters_df <- openxlsx::read.xlsx(parameters_file, sheet = 1) %>% as.data.frame()
+    parameters <- parameters_from_df(parameters_df)
+  } else if (params_type %in% c("yaml", "yml")) {
+    parameters <- yaml::read_yaml(parameters_file)
+  } else {
+    error_msg <- paste0("Unsupported params type: ", params_type)
+    stop(error_msg)
+  }
+  # Rename any missing app parameters if possible
+  renamed_app_params <- c(
+    "FamilyAssistance_FTC_Rates_FirstChild" = "FamilyAssistance_FTC_Rates_FirstChild0to15",
+    "FamilyAssistance_FTC_Rates_SubsequentChild" = "FamilyAssistance_FTC_Rates_SecondChild0to12",
+    "FamilyAssistance_IWTC_Eligibility" = "FamilyAssistance_IWTC_IncomeTest",
+    "FamilyAssistance_IWTC_IncomeThreshold_Couple" = "FamilyAssistance_IWTC_IncomeThreshold",
+    "FamilyAssistance_IWTC_IncomeThreshold_Single" = "FamilyAssistance_IWTC_IncomeThreshold"
+  )
+  for (app_param in names(renamed_app_params)) {
+    if (!(app_param %in% names(parameters))) {
+      tawa_param <- renamed_app_params[[app_param]]
+      if (tawa_param %in% names(parameters)) {
+        print(sprintf("Copying %s to %s", tawa_param, app_param))
+        parameters[[app_param]] <- parameters[[tawa_param]]
+      } else {
+        error_msg <- sprintf(
+          "Missing parameter, neither app (%s) nor tawa (%s) parameter found ",
+          app_param, tawa_param
+        )
+        stop(error_msg)
+      }
+    }
+  }
+  # Add defaults for any missing system params
+  default_system_params <- list(
+    "MFTC_WEP_scaling" = 1,
+    "WFF_or_Benefit" = "Max"
+  )
+  for (app_param in names(default_system_params)) {
+    if (!(app_param %in% names(parameters))) {
+      parameters[[app_param]] <- default_system_params[[app_param]]
+    }
+  }
   return(parameters)
 }
-
 
 parameters_from_df <- function(parameters_df, parameters_column = 2) {
   
@@ -20,16 +60,18 @@ parameters_from_df <- function(parameters_df, parameters_column = 2) {
   Params_text[, 2] <- gsub(";", ",", Params_text[, 2])
   Params_text[, 2] <- gsub("'", "", Params_text[, 2])
   
-  Parameters <- vector(mode="list", length=dim(Params_text)[1])
+  Parameters <- vector(mode = "list", length = dim(Params_text)[1])
   names(Parameters) <- Params_text$Parameter
   
-  for (i in 1:nrow(Params_text)){
-    if (!is.na(suppressWarnings(as.numeric(Params_text[i,2])))){
-      Parameters[[Params_text[i,1]]] <- suppressWarnings(as.numeric(Params_text[i,2]))
-    } else if (grepl("rbind", Params_text[i,2])) {
-      Parameters[[Params_text[i,1]]] <- eval(parse(text = Params_text[i,2]))
+  for (i in 1:nrow(Params_text)) {
+    if (!is.na(suppressWarnings(as.numeric(Params_text[i, 2])))) {
+      Parameters[[Params_text[i, 1]]] <- suppressWarnings(as.numeric(Params_text[i, 2]))
+    } else if (grepl("rbind", Params_text[i, 2])) {
+      # AbatementScale or TaxScale - convert to list with thresholds and rates
+      a_matrix <- eval(parse(text = Params_text[i, 2]))
+      Parameters[[Params_text[i, 1]]] <- list(thresholds = a_matrix[, 1], rates = a_matrix[, 2])
     } else {
-      Parameters[[Params_text[i,1]]] <- Params_text[i,2]
+      Parameters[[Params_text[i, 1]]] <- Params_text[i, 2]
     }
   }
   
@@ -125,7 +167,7 @@ emtr <- function(
   # except where the legislation specifies otherwise.
   convert_scale_to_weekly <- function(Scale, wks_in_year = 52L) {
     Scale_Weekly <- Scale
-    Scale_Weekly[, 1] <- Scale_Weekly[, 1] / wks_in_year
+    Scale_Weekly$thresholds <- Scale_Weekly$thresholds / wks_in_year
     return(Scale_Weekly)
   }
   
@@ -171,12 +213,7 @@ emtr <- function(
   MFTC_amount <- Parameters$FamilyAssistance_MFTC_Rates_MinimumIncome / 52L
   
   # Calculate inverse thresholds for the tax system (weekly)
-  NIT <- c(0)
-  for (Row in 2:nrow(Tax_BaseScale_Weekly)){
-    NIT <- c(NIT, tail(NIT, 1) +
-               (Tax_BaseScale_Weekly[Row, 1] - Tax_BaseScale_Weekly[Row - 1, 1]) *
-               (1 - Tax_BaseScale_Weekly[Row - 1, 2]))
-  }
+  NIT <- Net_Thresholds(Parameters$Tax_BaseScale)
   
   # Assign benefit rates and abatement schedules ------------------------
   if (Partnered == TRUE) {
