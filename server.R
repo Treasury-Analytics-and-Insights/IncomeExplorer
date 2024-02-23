@@ -199,8 +199,13 @@ shinyServer(function(input, output, session) {
       plot_id <- paste0("plot_income_composition_", scenario)
       observe({
         X_results <- req(get_scenario_incomes())
+        y_min <- X_results[, -1*52*max(
+          gross_benefit1 + gross_benefit2 - net_benefit1 - net_benefit2 +
+            wage1_tax + wage2_tax + wage1_ACC_levy + wage2_ACC_levy
+        )]
+        y_max <- 52*max(X_results$Net_Income)
         output[[plot_id]] <- renderPlotly({
-          income_composition_plot(X_results[Scenario == scenario])
+          income_composition_plot(X_results[Scenario == scenario], y_min = y_min, y_max = y_max)
         })
       })
     }

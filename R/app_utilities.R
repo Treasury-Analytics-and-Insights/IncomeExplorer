@@ -98,30 +98,22 @@ calculate_income <- function(
 
 # Data table containing only the parameters that changed
 # and their values
-check_for_changed_parameters <- function(p1, p2){
-  changed <- data.table()
-  for (p in names(p1)){
-    if (all(all.equal(p1[[p]], p2[[p]]) != TRUE)){
-      SQ = p1[[p]]
-      Reform = p2[[p]]
-      # convert scales to strings
-      if (length(SQ) > 1) {
-        SQ <- as.data.frame(SQ)
-        Reform <- as.data.frame(Reform)
-        SQ <- paste0(
-          "Thresholds:", paste0("$", SQ$V1, collapse = ", "), "; ",
-          "Rates:", paste0(100*SQ$V2, "%", collapse = ", ")
-        )
-        Reform <- paste0(
-          "Thresholds:", paste0("$", Reform$V1, collapse = ", "), "; ",
-          "Rates:", paste0(100*Reform$V2, "%", collapse = ", ")
-        )
-      }
-      this_changed <- data.table(Parameter = p, SQ = SQ, Reform = Reform)
-      changed <- rbind(changed, this_changed)
+params_to_string_dt <- function(params) {
+  params_string <- data.table()
+  for (p in names(params)) {
+    Value = params[[p]]
+    # convert scales to strings
+    if (length(Value) > 1) {
+      Value <- as.data.frame(Value)
+      Value <- paste0(
+        "Thresholds:", paste0("$", Value$thresholds, collapse = ", "), "; ",
+        "Rates:", paste0(100*Value$rates, "%", collapse = ", ")
+      )
     }
+    this_params_string <- data.table(Parameter = p, Value = Value)
+    params_string <- rbind(params_string, this_params_string)
   }
-  return(changed)
+  return(params_string)
 }
 
 get_parameter_changes <- function(params_list) {
@@ -129,27 +121,40 @@ get_parameter_changes <- function(params_list) {
   if (length(scenarios) < 2) {
     changes <- data.table()
   } else {
-    # Calculate sequential changes
-    changes <- data.table(Parameter = "")[0]
-    for (ii in seq_len(length(scenarios) - 1)) {
-      scenario1 <- scenarios[[ii]]
-      scenario2 <- scenarios[[ii + 1]]
-      this_scenario_changes <- check_for_changed_parameters(
-        params_list[[scenario1]], params_list[[scenario2]]
+    # Load all parameters as strings, joining Scenario's in long format
+    params_list_str <- lapply(params_list, params_to_string_dt) %>%
+      setNames(names(params_list)) %>%
+      rbindlist(idcol = "Scenario")
+    params_list_str[, Scenario := factor(Scenario, levels = scenarios)]
+    params_list_str[, Parameter := factor(Parameter, levels = unique(Parameter))]
+    
+    # Calculate all sequential changes
+    params_list_str[, Change_Value := ifelse(Value == shift(Value), NA, Value), by = Parameter]
+    
+    changes <- dcast(
+      params_list_str[!is.na(Change_Value), .(Scenario, Parameter, Change_Value)],
+      ... ~ Scenario, value.var = "Change_Value"
+    )
+    if (nrow(changes) > 0) {
+      # There are some changes, so lets merge on the first scenario parameters
+      first_vals <- dcast(
+        params_list_str[Scenario == first(Scenario), .(Scenario, Parameter, Value)],
+        ... ~ Scenario, value.var = "Value"
       )
-      if (nrow(this_scenario_changes) != 0) {
-        setnames(this_scenario_changes, c("SQ", "Reform"), c(scenario1, scenario2))
-        by_cols <- "Parameter"
-        if (ncol(changes) > 1) {
-          by_cols <- c(by_cols, scenario1)
-        }
-        this_scenario_changes <- this_scenario_changes[, lapply(.SD, as.character)]
-        changes <- merge(changes, this_scenario_changes, by = by_cols, all = TRUE)
-      }
-    }
-    changes <- changes[, lapply(.SD, function(x) ifelse(is.na(x), "", x))]
-    if (length(scenarios) > 1) {
-      setcolorder(changes, c("Parameter"))
+      changes <- merge(changes, first_vals, by = "Parameter", all.x = TRUE)
+      setcolorder(changes, c("Parameter", scenarios[1]))
+      
+      # Now add blanks to any "in-between" scenarios
+      inbetween_scenarios <- setdiff(scenarios, setdiff(names(changes), "Parameter"))
+      changes[, (inbetween_scenarios) := NA]
+      setcolorder(changes, c("Parameter", scenarios))
+      
+      # Set any NA's to be blank
+      changes[, (scenarios) := lapply(.SD, function(x) ifelse(is.na(x), "", x)), .SDcols = scenarios]
+      
+    } else {
+      # There are no changes
+      changes <- data.table()
     }
   }
   return(changes)
@@ -268,7 +273,8 @@ income_composition_plot <- function(
         ),
         yaxis = list(
           title = "Income ($)", tickformat = "$,",
-          automargin = TRUE, zeroline = TRUE, showline = TRUE, mirror = TRUE
+          automargin = TRUE, zeroline = TRUE, showline = TRUE, mirror = TRUE,
+          range = list(y_min, y_max)
         ),
         legend = list(x = 100, y = 0.5),
         hovermode = "x"
