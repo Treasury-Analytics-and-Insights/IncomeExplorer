@@ -34,7 +34,7 @@ shinyServer(function(input, output, session) {
   #### Selecting and/or Uploading parameter files ####
   # Get default parameter files for scenarios
   default_files <- list.files(
-    path = "data", pattern = glob2rx("*.yaml"), full.names = TRUE
+    path = "inst/parameters", pattern = glob2rx("*.yaml"), full.names = TRUE
   )
   default_files_names <- basename(default_files) %>% tools::file_path_sans_ext()
   names(default_files) <- default_files_names

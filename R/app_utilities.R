@@ -274,21 +274,24 @@ income_composition_plot <- function(
 compare_net_income_plot <- function(input_data, weeks_in_year = 52L) {
   income <- copy(input_data)
   #convert weekly income to annual
-  income[, Net_Income := Net_Income*weeks_in_year]
+  income[, Net_Income_annual := Net_Income*weeks_in_year]
   income[, Scenario := factor(Scenario, levels = unique(Scenario))]
   
   output_plot <- plot_ly(
-    data = income, x = ~gross_wage1_annual, y = ~Net_Income, split = ~Scenario,
+    data = income, x = ~gross_wage1_annual, y = ~Net_Income_annual, split = ~Scenario,
     mode = "lines", type = "scatter", showlegend = TRUE,
     line = list(color = tsy_palette, width = 3),
     text = ~paste(
-      "<b>Scenario:</b>", Scenario,
-      "<br><b>Wage:</b>", scales::dollar(gross_wage1_annual),
-      sprintf("(%s hrs/week)", scales::comma(hours1, accuracy = 0.1)),
-      "<br><b>Net Income:</b>", scales::dollar(Net_Income),
+      sprintf("<i>%s</i>", Scenario),
+      sprintf(
+        "<br><b>Weekly wage:</b> %s (%s hrs)",
+        scales::dollar(gross_wage1, accuracy = 0.01),
+        scales::comma(hours1, accuracy = 0.1)
+      ),
+      sprintf("<br><b>Net weekly income:</b> %s", scales::dollar(Net_Income)),
       "<br><b>Income breakdown</b>",
-      "<br>Tax/ACC:", scales::dollar(net_wage),
-      "<br>Benefit:", scales::dollar(net_benefit),
+      "<br>Net wage:", scales::dollar(net_wage),
+      "<br>Net benefit:", scales::dollar(net_benefit),
       "<br>WFF:", scales::dollar(WFF_abated),
       "<br>MFTC:", scales::dollar(MFTC),
       "<br>IETC:", scales::dollar(IETC_abated),
@@ -336,12 +339,15 @@ plot_rates <- function(input_data, rate_type, ylabel) {
     mode = "lines", type = "scatter", showlegend = TRUE,
     line = list(color = tsy_palette, width = 3),
     text = ~paste(
-      "<b>Scenario:</b>", Scenario,
-      "<br><b>Wage:</b>", scales::dollar(gross_wage1_annual),
-      sprintf("(%s hrs/week)", scales::comma(hours1, accuracy = 0.1)),
-      "<br><b>", rate_type, ":</b>", scales::percent(get(rate_type), accuracy = 0.1),
-      "<br><b>Income breakdown</b>",
-      "<br>Tax/ACC:", scales::percent(get(paste0(rate_type, "_net_wage")), accuracy = 0.1),
+      sprintf("<i>%s</i>", Scenario),
+      sprintf(
+        "<br><b>Weekly wage:</b> %s (%s hrs)",
+        scales::dollar(gross_wage1, accuracy = 0.01),
+        scales::comma(hours1, accuracy = 0.1)
+      ),
+      sprintf("<br><b>%s:</b> %s", rate_type, scales::percent(get(rate_type), accuracy = 0.1)),
+      sprintf("<br><b>%s breakdown</b>", rate_type),
+      "<br>Wage Tax/ACC:", scales::percent(get(paste0(rate_type, "_net_wage")), accuracy = 0.1),
       "<br>Benefit:", scales::percent(get(paste0(rate_type, "_net_benefit")), accuracy = 0.1),
       "<br>WFF:", scales::percent(get(paste0(rate_type, "_WFF_abated")), accuracy = 0.1),
       "<br>MFTC:", scales::percent(get(paste0(rate_type, "_MFTC")), accuracy = 0.1),

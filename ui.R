@@ -24,7 +24,7 @@ shinyUI(fluidPage(
   theme = shinytheme("sandstone"),
   useShinyjs(),
   # Application title
-  titlePanel("Income Explorer Prototype (version 0.8.0)"),
+  titlePanel("Income Explorer (version 1.0.0)"),
   # Side menu
   sidebarLayout(
     sidebarPanel(

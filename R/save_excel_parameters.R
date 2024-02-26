@@ -8,7 +8,11 @@ scale_vector_to_tawa_param_string <- function(x) {
   return(out)
 }
 
-save_excel_params <- function(params, output_path, firstRow = 2, firstCol = 2) {
+save_excel_params <- function(
+    params, output_path,
+    firstRow = 2, firstCol = 2,
+    template_path = "inst/parameters/policy_parameters_template.csv"
+) {
   params <- copy(params)
   
   # Encode Scales as the string "[['x1', 'x2']; ['y1', 'y2']]"
@@ -24,7 +28,7 @@ save_excel_params <- function(params, output_path, firstRow = 2, firstCol = 2) {
     Parameter := stringr::str_replace_all(Parameter, "_", "/")
   ]
   
-  params_output_template <- fread("data/policy_parameters_template.csv")
+  params_output_template <- fread(template_path)
   params_dt <- merge(params_output_template[, .(Parameter, Description)], params_dt, by = "Parameter")
   params_dt[, Parameter := factor(Parameter, levels = unique(params_output_template$Parameter))]
   setorder(params_dt, Parameter)
