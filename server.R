@@ -232,13 +232,13 @@ shinyServer(function(input, output, session) {
       # Create new files from the loaded parameters
       params <- get_params()
       if (length(params) == 1) {
-        yaml::write_yaml(params[[1]], file)
+        save_excel_params(params[[1]], file)
       } else {
         temp_directory <- file.path(tempdir(), as.integer(Sys.time()))
         dir.create(temp_directory)
         for (scenario in names(params)) {
-          output_file_path <- file.path(temp_directory, paste0(scenario, ".yaml"))
-          yaml::write_yaml(params[[scenario]], output_file_path)
+          output_file_path <- file.path(temp_directory, paste0(scenario, ".xlsx"))
+          save_excel_params(params[[scenario]], output_file_path)
         }
         zip::zip(zipfile = file, files = dir(temp_directory), root = temp_directory)
       }
