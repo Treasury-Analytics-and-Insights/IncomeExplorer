@@ -223,7 +223,6 @@ income_composition_plot <- function(
     plot_data[, (weekly_cols) := lapply(.SD, function(x) x*weeks_in_year), .SDcols = weekly_cols]
     
     add_income_component <- function(p, income_component, stackgroup) {
-      # print(paste0("Adding ", income_component, " with stackgroup ", stackgroup))
       p %>% add_trace(
         data = plot_data, type = "scatter", mode = "none",
         x = ~gross_wage1_annual,
@@ -232,23 +231,19 @@ income_composition_plot <- function(
         fillcolor = set_colours[[income_component]],
         hovertemplate = paste0(income_component, ": %{y:$,.0f}<extra></extra>"),
         stackgroup = stackgroup
-      ) %>% plotly_build()
+      )
     }
     
-    p <- plot_ly(plot_data)
+    p <- plot_ly()
     # Add tax first
     tax_col_names <- display_cols %>% .[. %like% "Tax"]
     for (tax_col_name in rev(tax_col_names)) {
-      p <- p %>% add_income_component(
-        income_component = tax_col_name, stackgroup = "one"
-      ) %>% plotly_build()
+      p <- p %>% add_income_component(tax_col_name, stackgroup = "one")
     }
     # Add transfers second
     transfer_col_names <- display_cols %>% .[!(. %like% "Tax") & . != "Net Income"]
     for (transfer_col_name in rev(transfer_col_names)) {
-      p <- p %>% add_income_component(
-        income_component = transfer_col_name, stackgroup = "two"
-      ) %>% plotly_build()
+      p <- p %>% add_income_component(transfer_col_name, stackgroup = "two")
     }
     
     p <- p %>%
@@ -258,9 +253,10 @@ income_composition_plot <- function(
         hovertemplate = paste("Net Income: %{y:$,.0f}<extra></extra>")
       ) %>%
       add_trace(
-        x =  ~ hours1, y =  ~ 0, line = list(width = 0), xaxis = "x2",
-        data = plot_data, showlegend = FALSE, inherit = FALSE,
-        hoverinfo = "none", type = "scatter", mode = "lines"
+        data = plot_data, x =  ~ hours1, y =  ~ 0, xaxis = "x2",
+        type = "scatter", mode = "lines",
+        line = list(width = 0), hoverinfo = "none",
+        showlegend = FALSE, inherit = FALSE
       ) %>%
       layout(
         xaxis2 = list(
@@ -354,7 +350,7 @@ plot_rates <- function(input_data, rate_type, ylabel) {
         automargin = TRUE, showline = TRUE,  mirror = TRUE,
         range = c(0, 1.1)
       ),
-      legend = list(x = 100, y = 0.5),#list(orientation = "h", xanchor = "center", x = 0.5),
+      legend = list(x = 100, y = 0.5),
       hovermode = "x"
     )
   return(output_plot)
