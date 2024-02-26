@@ -150,29 +150,29 @@ shinyServer(function(input, output, session) {
   
   #### Net Income plot ####
   output$plot_netincome <- renderPlotly({
-    X_results <- req(get_scenario_incomes())
+    X_results <- get_scenario_incomes()
     output_plot <- compare_net_income_plot(X_results)
     return(output_plot)
   })
   
   #### EMTR plot ####
   output$plot_emtr <- renderPlotly({
-    X_results <- req(get_scenario_incomes())
+    X_results <- get_scenario_incomes()
     output_plot <- plot_rates(X_results, "EMTR", "Effective Marginal Tax Rate")
     return(output_plot)
   })
   
   #### RR plot ####
   output$plot_replacement_rate <- renderPlotly({
-    X_results <- req(get_scenario_incomes())
-    output_plot <- plot_rates(X_results, "Replacement_Rate", "Replacement Rate")
+    X_results <- get_scenario_incomes()
+    output_plot <- plot_rates(X_results, "RR", "Replacement Rate")
     return(output_plot)
   })
   
   #### PTR plot ####
   output$plot_participation_tax_rate <- renderPlotly({
-    X_results <- req(get_scenario_incomes())
-    output_plot <- plot_rates(X_results, "Participation_Tax_Rate", "Participation Tax Rate")
+    X_results <- get_scenario_incomes()
+    output_plot <- plot_rates(X_results, "PTR", "Participation Tax Rate")
     return(output_plot)
   })
   

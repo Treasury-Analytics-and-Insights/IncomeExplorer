@@ -196,14 +196,6 @@ income_composition_plot <- function(
       inc_limit <- max(plot_data$gross_wage1_annual)
     }
     
-    plot_data[, ":="(
-      net_benefit = net_benefit1 + net_benefit2,
-      benefit_tax = -(gross_benefit1 + gross_benefit2 - net_benefit1 - net_benefit2),
-      gross_wage = gross_wage1 + gross_wage2,
-      wage_tax_and_ACC = -(wage1_tax + wage2_tax + wage1_ACC_levy + wage2_ACC_levy),
-      IETC_abated = IETC_abated1 + IETC_abated2
-    )]
-    
     data_component_cols <- c(
       "Best Start" = "BestStart_Total",
       "Winter Energy" = "WinterEnergy",
@@ -284,12 +276,27 @@ compare_net_income_plot <- function(input_data, weeks_in_year = 52L) {
   #convert weekly income to annual
   income[, Net_Income := Net_Income*weeks_in_year]
   income[, Scenario := factor(Scenario, levels = unique(Scenario))]
+  
   output_plot <- plot_ly(
     data = income, x = ~gross_wage1_annual, y = ~Net_Income, split = ~Scenario,
     mode = "lines", type = "scatter", showlegend = TRUE,
     line = list(color = tsy_palette, width = 3),
-    customdata = ~Scenario,
-    hovertemplate = "%{customdata}: %{y:$,.2f} <extra></extra>"
+    text = ~paste(
+      "<b>Scenario:</b>", Scenario,
+      "<br><b>Wage:</b>", scales::dollar(gross_wage1_annual),
+      sprintf("(%s hrs/week)", scales::comma(hours1, accuracy = 0.1)),
+      "<br><b>Net Income:</b>", scales::dollar(Net_Income),
+      "<br><b>Income breakdown</b>",
+      "<br>Tax/ACC:", scales::dollar(net_wage),
+      "<br>Benefit:", scales::dollar(net_benefit),
+      "<br>WFF:", scales::dollar(WFF_abated),
+      "<br>MFTC:", scales::dollar(MFTC),
+      "<br>IETC:", scales::dollar(IETC_abated),
+      "<br>Winter Energy:", scales::dollar(WinterEnergy),
+      "<br>Best start:", scales::dollar(BestStart_Total),
+      "<br>AS:", scales::dollar(AS_Amount)
+    ),
+    hoverinfo = "text"
   ) %>%
     add_trace(
       x = ~hours1, y = 0, xaxis = "x2", showlegend = FALSE, inherit = FALSE,
@@ -309,7 +316,7 @@ compare_net_income_plot <- function(input_data, weeks_in_year = 52L) {
         automargin = TRUE, showline = TRUE,  mirror = TRUE, rangemode = "tozero"
       ),
       legend = list(x = 100, y = 0.5),
-      hovermode = "x"
+      hovermode = "closest"
     )
   return(output_plot)
 }
@@ -318,19 +325,32 @@ compare_net_income_plot <- function(input_data, weeks_in_year = 52L) {
 plot_rates <- function(input_data, rate_type, ylabel) {
   income <- copy(input_data)
   income[, Scenario := factor(Scenario, levels = unique(Scenario))]
-  setnames(income, rate_type, "y")
   
-  if (rate_type == "Participation_Tax_Rate") {
+  if (rate_type == "PTR") {
     # Drop zero since PTR is undefined
     income <- income[gross_wage1_annual != 0]
   }
   
   output_plot <- plot_ly(
-    data = income, x = ~gross_wage1_annual, y = ~y, split = ~Scenario,
+    data = income, x = ~gross_wage1_annual, y = ~get(rate_type), split = ~Scenario,
     mode = "lines", type = "scatter", showlegend = TRUE,
     line = list(color = tsy_palette, width = 3),
-    customdata = ~Scenario,
-    hovertemplate = "%{customdata}: %{y:.2%} <extra></extra>"
+    text = ~paste(
+      "<b>Scenario:</b>", Scenario,
+      "<br><b>Wage:</b>", scales::dollar(gross_wage1_annual),
+      sprintf("(%s hrs/week)", scales::comma(hours1, accuracy = 0.1)),
+      "<br><b>", rate_type, ":</b>", scales::percent(get(rate_type), accuracy = 0.1),
+      "<br><b>Income breakdown</b>",
+      "<br>Tax/ACC:", scales::percent(get(paste0(rate_type, "_net_wage")), accuracy = 0.1),
+      "<br>Benefit:", scales::percent(get(paste0(rate_type, "_net_benefit")), accuracy = 0.1),
+      "<br>WFF:", scales::percent(get(paste0(rate_type, "_WFF_abated")), accuracy = 0.1),
+      "<br>MFTC:", scales::percent(get(paste0(rate_type, "_MFTC")), accuracy = 0.1),
+      "<br>IETC:", scales::percent(get(paste0(rate_type, "_IETC_abated")), accuracy = 0.1),
+      "<br>Winter Energy:", scales::percent(get(paste0(rate_type, "_WinterEnergy")), accuracy = 0.1),
+      "<br>Best start:", scales::percent(get(paste0(rate_type, "_BestStart_Total")), accuracy = 0.1),
+      "<br>AS:", scales::percent(get(paste0(rate_type, "_AS_Amount")), accuracy = 0.1)
+    ),
+    hoverinfo = "text"
   ) %>%
     add_trace(
       x = ~hours1, y = ~0, xaxis = "x2", showlegend = FALSE, inherit = FALSE,
@@ -351,7 +371,7 @@ plot_rates <- function(input_data, rate_type, ylabel) {
         range = c(0, 1.1)
       ),
       legend = list(x = 100, y = 0.5),
-      hovermode = "x"
+      hovermode = "closest"
     )
   return(output_plot)
 }
