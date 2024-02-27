@@ -10,6 +10,7 @@ suppressMessages({
   library(rhandsontable)
   library(magrittr)
   library(data.table)
+  library(downloadthis)
 })
 
 # Define server logic required to run the app
@@ -63,7 +64,6 @@ shinyServer(function(input, output, session) {
   
   # Enable download buttons only when a selection exists
   observe({
-    req(input$select_scenarios)
     if (!is.null(input$select_scenarios)) {
       enable("download_params_button")
       enable("download_results_button")
@@ -250,47 +250,51 @@ shinyServer(function(input, output, session) {
     get_parameter_changes(params)
   })
   
-  #### Download parameters for all selected scenarios, in a single zip file ####
-  output$download_params_button <- downloadHandler(
-    filename = function() {
-      params <- req(get_params())
-      if (length(params) == 1) {
-        paste0(names(params), ".yaml")
-      } else {
-        "Scenarios.zip"
+  # Create "download scenarios" button using downloadthis because
+  # shinylive wasn't supporting downloadHandler
+  output$download_params_button <- renderUI({
+    params <- req(get_params())
+    param_names <- names(params)
+    param_paths <- scenarios$files[param_names]
+    if (length(param_paths) == 0) {
+      disabled(downloadButton("disabled_download_params", label = "Scenarios"))
+    } else {
+      # Create new excel files from the loaded parameters
+      temp_directory <- file.path(tempdir(), as.integer(Sys.time()))
+      dir.create(temp_directory)
+      output_paths <- file.path(temp_directory, paste0(param_names, ".xlsx"))
+      names(output_paths) <- param_names
+      for (param_name in param_names) {
+        save_excel_params(params[[param_name]], output_paths[[param_name]])
       }
-    },
-    content = function(file) {
-      # Create new files from the loaded parameters
-      params <- get_params()
-      if (length(params) == 1) {
-        save_excel_params(params[[1]], file)
+      if (length(param_names) == 1) {
+        output_name <- param_names[1]
       } else {
-        temp_directory <- file.path(tempdir(), as.integer(Sys.time()))
-        dir.create(temp_directory)
-        for (scenario in names(params)) {
-          output_file_path <- file.path(temp_directory, paste0(scenario, ".xlsx"))
-          save_excel_params(params[[scenario]], output_file_path)
-        }
-        zip::zip(zipfile = file, files = dir(temp_directory), root = temp_directory)
+        output_name <- "Scenarios"
       }
+      downloadthis::download_file(
+        output_paths,
+        output_name = output_name,
+        button_label = "Scenarios",
+        icon = "fa fa-download"
+      )
     }
-  )
+  })
   
-  #### Download everything ####
-  output$download_results_button <- downloadHandler(
-    filename = function() {
-      "IncomeExplorerResults.xlsx"
-    },
-    content = function(file) {
+  # Create "download results" button using downloadthis because
+  # shinylive wasn't supporting downloadHandler
+  output$download_results_button <- renderUI({
+    params <- req(get_params())
+    
+    if (length(params) == 0) {
+      disabled(downloadButton("disabled_download_results", label = "Results"))
+    } else {
+      output_path <- "IncomeExplorerResults.xlsx"
       scenario_incomes <- req(get_scenario_incomes())
       scenario_names <- scenario_incomes[, unique(Scenario)]
-      
-      params <- req(get_params())
+  
       parameter_differences <- get_parameter_changes(params)
-      
-      wb <- openxlsx::createWorkbook()
-      
+  
       # Details of the example family and input files
       details <- c(
         HourlyWage = input$wage1_hourl,
@@ -302,24 +306,30 @@ shinyServer(function(input, output, session) {
         AS_Area = input$AS_Area,
         Children_Ages = input$Children_ages
       )
-      
+  
+      wb <- openxlsx::createWorkbook()
       openxlsx::addWorksheet(wb, "Details")
       openxlsx::writeData(wb, "Details", names(details), startCol = 1)
       openxlsx::writeData(wb, "Details", details, startCol = 2)
-      
+  
       if (length(scenario_names) > 1) {
         # Parameters that changed
         openxlsx::addWorksheet(wb, "Scenario Differences")
         openxlsx::writeData(wb, "Scenario Differences", parameter_differences)
       }
-      
+  
       # Full sets of results (should probably be more selective)
       for (scenario in scenario_names) {
         openxlsx::addWorksheet(wb, scenario)
         openxlsx::writeData(wb, scenario, scenario_incomes[Scenario == scenario])
       }
+      openxlsx::saveWorkbook(wb, output_path, overwrite = TRUE)
       
-      openxlsx::saveWorkbook(wb, file, overwrite = TRUE)
+      downloadthis:::create_button(
+        button_label = "Results", button_type = "default",
+        output_file = output_path, tmp_file = output_path,
+        self_contained = FALSE, icon = "fa fa-download"
+      )
     }
-  )
+  })
 })

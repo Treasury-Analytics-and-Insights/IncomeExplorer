@@ -34,8 +34,8 @@ shinyUI(fluidPage(
         column(
           12, align = "right",
           actionButton("upload_scenarios_button", "Add scenarios", icon = shiny::icon("plus")),
-          downloadButton("download_params_button", "Scenarios"),
-          downloadButton("download_results_button", "Results")
+          uiOutput("download_params_button", inline = TRUE),
+          uiOutput("download_results_button", inline = TRUE)
         )
       ),
       
