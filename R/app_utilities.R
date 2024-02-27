@@ -164,111 +164,100 @@ get_parameter_changes <- function(params_list) {
 
 # Plot income composition
 income_composition_plot <- function(
-    EMTR_table, inc_limit = NULL, y_min = NULL, y_max = NULL,
-    watermark = FALSE, weeks_in_year = 52L, 
-    display_cols = c(
-      "Net Income", "Best Start", "Winter Energy", "Accomodation Supplement",
-      "IWTC", "FTC", "MFTC", "IETC", "Net Core Benefit", "Net Wage",
-      "Net Wage (Partner)", "Tax on Core Benefit", "Tax on Wage and ACC"
-    )
+    EMTR_table, y_min = NULL, y_max = NULL, weeks_in_year = 52L
 ) {
   
-    extended_tsy_palette <- colorRampPalette(tsy_palette)(20)
-    
-    set_colours <- c(
-      "Best Start" = extended_tsy_palette[1],
-      "Winter Energy" = extended_tsy_palette[2],
-      "Accomodation Supplement" = extended_tsy_palette[3],
-      "IWTC" = extended_tsy_palette[4],
-      "FTC" = extended_tsy_palette[5],
-      "MFTC" = extended_tsy_palette[6],
-      "IETC" = extended_tsy_palette[7],
-      "Net Core Benefit" = extended_tsy_palette[13],
-      "Net Wage" = extended_tsy_palette[18],
-      "Net Wage (Partner)" = extended_tsy_palette[11],
-      "Tax on Core Benefit" = extended_tsy_palette[10],
-      "Tax on Wage and ACC" = extended_tsy_palette[8]
+  plot_data <- copy(EMTR_table)
+  extended_tsy_palette <- colorRampPalette(tsy_palette)(20)
+  
+  set_colours <- c(
+    "Best Start" = extended_tsy_palette[1],
+    "Winter Energy" = extended_tsy_palette[2],
+    "Accomodation Supplement" = extended_tsy_palette[3],
+    "IWTC" = extended_tsy_palette[4],
+    "FTC" = extended_tsy_palette[5],
+    "MFTC" = extended_tsy_palette[6],
+    "IETC" = extended_tsy_palette[7],
+    "Net Core Benefit" = extended_tsy_palette[13],
+    "Net Wage" = extended_tsy_palette[18],
+    "Net Wage (Partner)" = extended_tsy_palette[11],
+    "Tax on Core Benefit" = extended_tsy_palette[10],
+    "Tax on Wage and ACC" = extended_tsy_palette[8]
+  )
+  
+  data_component_cols <- c(
+    "Best Start" = "BestStart_Total",
+    "Winter Energy" = "WinterEnergy",
+    "Accomodation Supplement" = "AS_Amount",
+    "IWTC" = "IWTC_abated",
+    "FTC" = "FTC_abated",
+    "MFTC" = "MFTC",
+    "IETC" = "IETC_abated",
+    "Net Core Benefit" = "net_benefit",
+    "Net Wage" = "net_wage1",
+    "Net Wage (Partner)" = "net_wage2",
+    "Tax on Core Benefit" = "benefit_tax",
+    "Tax on Wage and ACC" = "wage_tax_and_ACC"
+  )
+  
+  display_cols <- c(data_component_cols, "Net Income" = "Net_Income")
+  plot_data[, (display_cols) := lapply(.SD, function(x) x*weeks_in_year), .SDcols = display_cols]
+  
+  add_income_component <- function(p, income_component, stackgroup) {
+    p %>% add_trace(
+      data = plot_data, type = "scatter", mode = "none",
+      x = ~gross_wage1_annual,
+      y = ~.data[[data_component_cols[[income_component]]]],
+      name = income_component,
+      fillcolor = set_colours[[income_component]],
+      hovertemplate = paste0(income_component, ": %{y:$,.0f}<extra></extra>"),
+      stackgroup = stackgroup
     )
-    
-    plot_data <- copy(EMTR_table)
-    
-    if (is.null(inc_limit)) {
-      inc_limit <- max(plot_data$gross_wage1_annual)
-    }
-    
-    data_component_cols <- c(
-      "Best Start" = "BestStart_Total",
-      "Winter Energy" = "WinterEnergy",
-      "Accomodation Supplement" = "AS_Amount",
-      "IWTC" = "IWTC_abated",
-      "FTC" = "FTC_abated",
-      "MFTC" = "MFTC",
-      "IETC" = "IETC_abated",
-      "Net Core Benefit" = "net_benefit",
-      "Net Wage" = "net_wage1",
-      "Net Wage (Partner)" = "net_wage2",
-      "Tax on Core Benefit" = "benefit_tax",
-      "Tax on Wage and ACC" = "wage_tax_and_ACC"
-    )
-    
-    weekly_cols <- c(data_component_cols, "Net_Income")
-    plot_data[, (weekly_cols) := lapply(.SD, function(x) x*weeks_in_year), .SDcols = weekly_cols]
-    
-    add_income_component <- function(p, income_component, stackgroup) {
-      p %>% add_trace(
-        data = plot_data, type = "scatter", mode = "none",
-        x = ~gross_wage1_annual,
-        y = ~.data[[data_component_cols[[income_component]]]],
-        name = income_component,
-        fillcolor = set_colours[[income_component]],
-        hovertemplate = paste0(income_component, ": %{y:$,.0f}<extra></extra>"),
-        stackgroup = stackgroup
-      )
-    }
-    
-    p <- plot_ly()
-    # Add tax first
-    tax_col_names <- display_cols %>% .[. %like% "Tax"]
-    for (tax_col_name in rev(tax_col_names)) {
-      p <- p %>% add_income_component(tax_col_name, stackgroup = "one")
-    }
-    # Add transfers second
-    transfer_col_names <- display_cols %>% .[!(. %like% "Tax") & . != "Net Income"]
-    for (transfer_col_name in rev(transfer_col_names)) {
-      p <- p %>% add_income_component(transfer_col_name, stackgroup = "two")
-    }
-    
-    p <- p %>%
-      add_lines(
-        data = plot_data, x = ~ gross_wage1_annual,
-        y = ~ Net_Income, name = "Net Income", color = I("black"), inherit = FALSE,
-        hovertemplate = paste("Net Income: %{y:$,.0f}<extra></extra>")
-      ) %>%
-      add_trace(
-        data = plot_data, x =  ~ hours1, y =  ~ 0, xaxis = "x2",
-        type = "scatter", mode = "lines",
-        line = list(width = 0), hoverinfo = "none",
-        showlegend = FALSE, inherit = FALSE
-      ) %>%
-      layout(
-        xaxis2 = list(
-          overlaying = "x", nticks = 10, side = "top",
-          title = "Hours/week", automargin = TRUE, size = 8, showline = TRUE
-        ),
-        xaxis = list(
-          title = "Annual gross wage income ($)", tickformat = "$,",
-          automargin = TRUE, zeroline = TRUE, showline = TRUE, mirror = TRUE
-        ),
-        yaxis = list(
-          title = "Income ($)", tickformat = "$,",
-          automargin = TRUE, zeroline = TRUE, showline = TRUE, mirror = TRUE,
-          range = list(y_min, y_max)
-        ),
-        legend = list(x = 100, y = 0.5),
-        hovermode = "x"
-      )
-    return(p)
   }
+  
+  p <- plot_ly()
+  # Add tax first
+  tax_col_names <- names(display_cols) %>% .[. %like% "Tax"]
+  for (tax_col_name in rev(tax_col_names)) {
+    p <- p %>% add_income_component(tax_col_name, stackgroup = "one")
+  }
+  # Add transfers second
+  transfer_col_names <- names(display_cols) %>% .[!(. %like% "Tax") & . != "Net Income"]
+  for (transfer_col_name in rev(transfer_col_names)) {
+    p <- p %>% add_income_component(transfer_col_name, stackgroup = "two")
+  }
+  
+  p <- p %>%
+    add_lines(
+      data = plot_data, x = ~ gross_wage1_annual,
+      y = ~ Net_Income, name = "Net Income", color = I("black"), inherit = FALSE,
+      hovertemplate = paste("Net Income: %{y:$,.0f}<extra></extra>")
+    ) %>%
+    add_trace(
+      data = plot_data, x =  ~ hours1, y =  ~ 0, xaxis = "x2",
+      type = "scatter", mode = "lines",
+      line = list(width = 0), hoverinfo = "none",
+      showlegend = FALSE, inherit = FALSE
+    ) %>%
+    layout(
+      xaxis2 = list(
+        overlaying = "x", nticks = 10, side = "top",
+        title = "Hours/week", automargin = TRUE, size = 8, showline = TRUE
+      ),
+      xaxis = list(
+        title = "Annual gross wage income ($)", tickformat = "$,",
+        automargin = TRUE, zeroline = TRUE, showline = TRUE, mirror = TRUE
+      ),
+      yaxis = list(
+        title = "Income ($)", tickformat = "$,",
+        automargin = TRUE, zeroline = TRUE, showline = TRUE, mirror = TRUE,
+        range = list(y_min, y_max)
+      ),
+      legend = list(x = 100, y = 0.5),
+      hovermode = "x"
+    )
+  return(p)
+}
 
 # Plot net incomes by Scenario
 compare_net_income_plot <- function(input_data, weeks_in_year = 52L) {

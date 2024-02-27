@@ -87,8 +87,7 @@ shinyServer(function(input, output, session) {
   
   # Add a scenario to the list when a new scenario file is uploaded
   observeEvent(input$upload_scenario_files, {
-    new_scenarios <- input$upload_scenario_files
-    req(new_scenarios)
+    new_scenarios <- req(input$upload_scenario_files)
     new_scenario_names <- new_scenarios$name %>% tools::file_path_sans_ext()
     overlapping_names <- intersect(new_scenario_names, names(scenarios$files))
     for (overlapping_name in overlapping_names) {
@@ -109,10 +108,15 @@ shinyServer(function(input, output, session) {
   #######################################################
   
   get_params <- reactive({
-    selected_scenarios <- req(input$select_scenarios)
-    params_files <- req(scenarios$files[selected_scenarios])
-    params <- lapply(params_files, parameters_from_file)
-    names(params) <- selected_scenarios
+    if (!is.null(input$select_scenarios)) {
+      selected_scenarios <- req(input$select_scenarios)
+      params_files <- req(scenarios$files[selected_scenarios])
+      params <- lapply(params_files, parameters_from_file)
+      names(params) <- selected_scenarios
+    } else {
+      # This is for shinylive which needs empty plots to initialise itself
+      params <- list()
+    }
     return(params)
   })
   
@@ -141,38 +145,61 @@ shinyServer(function(input, output, session) {
   
   #### Join incomes together as one data.table ####
   get_scenario_incomes <- reactive({
-    params <- get_params()
+    params <- req(get_params())
     scenario_income_list <- lapply(params, get_scenario_income)
     names(scenario_income_list) <- names(params)
     scenario_incomes <- rbindlist(scenario_income_list, idcol = "Scenario")
     return(scenario_incomes)
   })
   
+  # An empty placeholder plot for when no scenarios are selected
+  # This is for shinylive which needs empty plots otherwise it errors
+  empty_plot <- plot_ly(type = "scatter", mode = "none") %>% layout(
+    xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+    yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE)
+  )
+  
   #### Net Income plot ####
   output$plot_netincome <- renderPlotly({
-    X_results <- get_scenario_incomes()
-    output_plot <- compare_net_income_plot(X_results)
+    X_results <- req(get_scenario_incomes())
+    if (nrow(X_results) > 0) {
+      output_plot <- compare_net_income_plot(X_results)
+    } else {
+      output_plot <- empty_plot
+    }
     return(output_plot)
   })
   
   #### EMTR plot ####
   output$plot_emtr <- renderPlotly({
-    X_results <- get_scenario_incomes()
-    output_plot <- plot_rates(X_results, "EMTR", "Effective Marginal Tax Rate")
+    X_results <- req(get_scenario_incomes())
+    if (nrow(X_results) > 0) {
+      output_plot <- plot_rates(X_results, "EMTR", "Effective Marginal Tax Rate")
+    } else {
+      output_plot <- empty_plot
+    }
     return(output_plot)
   })
   
   #### RR plot ####
   output$plot_replacement_rate <- renderPlotly({
-    X_results <- get_scenario_incomes()
-    output_plot <- plot_rates(X_results, "RR", "Replacement Rate")
+    X_results <- req(get_scenario_incomes())
+    if (nrow(X_results) > 0) {
+      output_plot <- plot_rates(X_results, "RR", "Replacement Rate")
+    } else {
+      output_plot <- empty_plot
+    }
     return(output_plot)
   })
   
   #### PTR plot ####
   output$plot_participation_tax_rate <- renderPlotly({
-    X_results <- get_scenario_incomes()
-    output_plot <- plot_rates(X_results, "PTR", "Participation Tax Rate")
+    X_results <- req(get_scenario_incomes())
+    if (nrow(X_results) > 0) {
+      output_plot <- plot_rates(X_results, "PTR", "Participation Tax Rate")
+    } else {
+      output_plot <- empty_plot
+    }
     return(output_plot)
   })
   
@@ -198,14 +225,18 @@ shinyServer(function(input, output, session) {
     for (scenario in input$select_scenarios) {
       plot_id <- paste0("plot_income_composition_", scenario)
       observe({
-        X_results <- req(get_scenario_incomes())
-        y_min <- X_results[, -1*52*max(
-          gross_benefit1 + gross_benefit2 - net_benefit1 - net_benefit2 +
-            wage1_tax + wage2_tax + wage1_ACC_levy + wage2_ACC_levy
-        )]
-        y_max <- 52*max(X_results$Net_Income)
         output[[plot_id]] <- renderPlotly({
-          income_composition_plot(X_results[Scenario == scenario], y_min = y_min, y_max = y_max)
+          X_results <- req(get_scenario_incomes())
+          if (nrow(X_results) > 0) {
+            y_min <- 52*max(X_results[, wage_tax_and_ACC + benefit_tax])
+            y_max <- 52*max(X_results[, Net_Income])
+            output_plot <- income_composition_plot(
+              X_results[Scenario == scenario], y_min = y_min, y_max = y_max
+            )
+          } else {
+            output_plot <- empty_plot
+          }
+          return(output_plot)
         })
       })
     }
@@ -215,13 +246,14 @@ shinyServer(function(input, output, session) {
   
   #### Changed parameters ####
   output$changed_parameters <- renderTable({
-    get_parameter_changes(get_params())
+    params <- req(get_params())
+    get_parameter_changes(params)
   })
   
   #### Download parameters for all selected scenarios, in a single zip file ####
   output$download_params_button <- downloadHandler(
     filename = function() {
-      params <- get_params()
+      params <- req(get_params())
       if (length(params) == 1) {
         paste0(names(params), ".yaml")
       } else {
@@ -251,10 +283,11 @@ shinyServer(function(input, output, session) {
       "IncomeExplorerResults.xlsx"
     },
     content = function(file) {
-      scenario_incomes <- get_scenario_incomes()
+      scenario_incomes <- req(get_scenario_incomes())
       scenario_names <- scenario_incomes[, unique(Scenario)]
       
-      parameter_differences <- get_parameter_changes(get_params())
+      params <- req(get_params())
+      parameter_differences <- get_parameter_changes(params)
       
       wb <- openxlsx::createWorkbook()
       
