@@ -8,10 +8,69 @@ scale_vector_to_tawa_param_string <- function(x) {
   return(out)
 }
 
+PARAMS_TEMPLATE <- data.table::as.data.table(tibble::tribble(
+  ~Parameter, ~Default_Value, ~Description,
+  "modelyear", "0", 'Tax year that you are modelling',
+  "ACC/LevyRate", "0", 'Rate is specified with each forecast update',
+  "ACC/MaxLeviableIncome", "0", 'Specified with each forecast update',
+  "Accommodation/AbatementRate", "0", 'Abatement rate for AS payments (currently 0.25, so lose 25c for every extra dollar earned)',
+  "Accommodation/BaseRateThreshold/Mortgage", "0", 'AS = min[MaxRate, (PaymentPercentage) * (HousingCosts - (BaseRateThreshold)*BaseIncome)].',
+  "Accommodation/BaseRateThreshold/Rent", "0", 'AS = min[MaxRate, (PaymentPercentage) * (HousingCosts - (BaseRateThreshold)*BaseIncome)].',
+  "Accommodation/MaxRate/CoupleDeps/Single2/Deps/Area1", "0", 'AS = min[MaxRate, (PaymentPercentage) * (HousingCosts - (BaseRateThreshold)*BaseIncome)].',
+  "Accommodation/MaxRate/CoupleDeps/Single2/Deps/Area2", "0", 'AS = min[MaxRate, (PaymentPercentage) * (HousingCosts - (BaseRateThreshold)*BaseIncome)].',
+  "Accommodation/MaxRate/CoupleDeps/Single2/Deps/Area3", "0", 'AS = min[MaxRate, (PaymentPercentage) * (HousingCosts - (BaseRateThreshold)*BaseIncome)].',
+  "Accommodation/MaxRate/CoupleDeps/Single2/Deps/Area4", "0", 'AS = min[MaxRate, (PaymentPercentage) * (HousingCosts - (BaseRateThreshold)*BaseIncome)].',
+  "Accommodation/MaxRate/CoupleNoDeps/Single1Dep/Area1", "0", 'AS = min[MaxRate, (PaymentPercentage) * (HousingCosts - (BaseRateThreshold)*BaseIncome)].',
+  "Accommodation/MaxRate/CoupleNoDeps/Single1Dep/Area2", "0", 'AS = min[MaxRate, (PaymentPercentage) * (HousingCosts - (BaseRateThreshold)*BaseIncome)].',
+  "Accommodation/MaxRate/CoupleNoDeps/Single1Dep/Area3", "0", 'AS = min[MaxRate, (PaymentPercentage) * (HousingCosts - (BaseRateThreshold)*BaseIncome)].',
+  "Accommodation/MaxRate/CoupleNoDeps/Single1Dep/Area4", "0", 'AS = min[MaxRate, (PaymentPercentage) * (HousingCosts - (BaseRateThreshold)*BaseIncome)].',
+  "Accommodation/MaxRate/SingleNoDeps/Area1", "0", 'AS = min[MaxRate, (PaymentPercentage) * (HousingCosts - (BaseRateThreshold)*BaseIncome)].',
+  "Accommodation/MaxRate/SingleNoDeps/Area2", "0", 'AS = min[MaxRate, (PaymentPercentage) * (HousingCosts - (BaseRateThreshold)*BaseIncome)].',
+  "Accommodation/MaxRate/SingleNoDeps/Area3", "0", 'AS = min[MaxRate, (PaymentPercentage) * (HousingCosts - (BaseRateThreshold)*BaseIncome)].',
+  "Accommodation/MaxRate/SingleNoDeps/Area4", "0", 'AS = min[MaxRate, (PaymentPercentage) * (HousingCosts - (BaseRateThreshold)*BaseIncome)].',
+  "Accommodation/PaymentPercentage", "0", 'AS = min[MaxRate, (PaymentPercentage) * (HousingCosts - (BaseRateThreshold)*BaseIncome)].',
+  "Benefits/JSS/AbatementScale", "[['0'; '0']]", 'Job Seeker Support settings',
+  "Benefits/JSS/CoupleAbatementScale", "[['0'; '0']]", 'Job Seeker Support settings',
+  "Benefits/JSS/Rate/Couple", "0", 'Job Seeker Support settings',
+  "Benefits/JSS/Rate/CoupleParent", "0", 'Job Seeker Support settings',
+  "Benefits/JSS/Rate/Single", "0", 'Job Seeker Support settings',
+  "Benefits/JSS/Rate/SoleParent", "0", 'Job Seeker Support settings',
+  "Benefits/SPS/AbatementScale", "[['0'; '0']]", 'Sole Parent Support settings',
+  "Benefits/SPS/Rate", "0", 'Sole Parent Support settings',
+  "Benefits/Entitlement/Age/SPS/ChildLowerBound", "0", 'Age threshold for the youngest child such that an individual is eligible for SPS',
+  "Benefits/WinterEnergy/Rates/Single", "0", 'Winter energy payment amount. Given to families receiving a core benefit or NZ Super. ',
+  "Benefits/WinterEnergy/Rates/CoupleOrDeps", "0", 'Winter energy payment amount. Given to families receiving a core benefit or NZ Super. ',
+  "FamilyAssistance/Abatement/AbatementScale", "[['0'; '0']]", 'Working for Families abatement',
+  "FamilyAssistance/Abatement/Order", "0", 'Working for Families abatement FTC and IWTC order. 0 (default): FTC first then IWTC, 1: IWTC first then FTC.',
+  "FamilyAssistance/FTC/Rates/FirstChild", "0", 'Family Tax Credit amount for first child',
+  "FamilyAssistance/FTC/Rates/SubsequentChild", "0", 'Family Tax Credit amount for subsequent children',
+  "FamilyAssistance/IWTC/Rates/UpTo3Children", "0", 'In Work Tax Credit amount given for up to three children',
+  "FamilyAssistance/IWTC/Rates/SubsequentChildren", "0", 'In Work Tax Credit amount for each subsequent child',
+  "FamilyAssistance/IWTC/Eligibility", "0", 'Eligibility test for In Work Tax Credit. 0: Status quo, based on hours worked and not given to beneficiaries. 1: Income test, option to give to beneficiaries (see below), 2: Phase in amount of IWTC based on phase-in scales (see below).',
+  "FamilyAssistance/FullTimeWorkingHours/Couple", "0", 'Number of hours for a couple to be classified as working full time, for IWTC and MFTC eligibility  (FamilyAssistance/IWTC/Eligibility must be set to 0)',
+  "FamilyAssistance/FullTimeWorkingHours/Single", "0", 'Number of hours for a single parent to be classified as working full time, for IWTC and MFTC eligibility (FamilyAssistance/IWTC/Eligibility must be set to 0)',
+  "FamilyAssistance/IWTC/IncomeThreshold/Single", "0", 'Income test for a single parent to receive IWTC and MFTC (FamilyAssistance/IWTC/Eligibility must be set to 1)',
+  "FamilyAssistance/IWTC/IncomeThreshold/Couple", "0", 'Income test for a couple to receive IWTC and MFTC (FamilyAssistance/IWTC/Eligibility must be set to 1)',
+  "FamilyAssistance/IWTC/ToBeneficiaries", "0", 'Determines if beneficiaries can receive IWTC (FamilyAssistance/IWTC/Eligibility must be set to 1)',
+  "FamilyAssistance/IWTC/PhaseIn/Single", "[['0'; '0']]", 'Single parent phase-in scale for IWTC, e.g. a phase-in scale of 20% is specified as -0.2 (FamilyAssistance/IWTC/Eligibility must be set to 2)',
+  "FamilyAssistance/IWTC/PhaseIn/Couple", "[['0', '0']]", 'Couple phase-in scale for IWTC, e.g. a phase-in scale of 20% is specified as -0.2 (FamilyAssistance/IWTC/Eligibility must be set to 2)',
+  "FamilyAssistance/MFTC/Rates/MinimumIncome", "0", 'Minimum income that ensures that a family is better off in work than on benefit; the Minimum Family Tax Credit brings their income up to this amount. Value is calculated by the TAWA version of the IRD calculator.',
+  "FamilyAssistance/BestStart/Abatement/AbatementScale", "[['0'; '0']]", 'Abatement scale for Best Start payments (however best start payments for 0 year olds are not abated)',
+  "FamilyAssistance/BestStart/Rates/Age0", "0", 'Best start rate for a 0 year old',
+  "FamilyAssistance/BestStart/Rates/Age1or2", "0", 'Best start rate for 1 and 2 year olds',
+  "IETC/AbatementScale", "[['0'; '0']]", 'Independent Earner Tax Credit, abatement scale',
+  "IETC/MinimalIncome", "0", 'Independent Earner Tax Credit, minimum bound on earned income to determine eligibility',
+  "IETC/PerYear", "0", 'Independent Earner Tax Credit, amount for each year',
+  "IETC/OnlyFamiliesWithoutChildren", "0", 'Independent Earner Tax Credit, 0: give to everyone, 1: only give to families without children',
+  "Tax/BaseScale", "[['0'; '0']]", 'Tax scale',
+  "MFTC_WEP_scaling", "1", 'How should the Winter Energy Payment be scaled? Average week = 1, Winter week = 12/5, Summer week = 0',
+  "WFF_or_Benefit", "Max", 'What work decision should we assume? Go off-benefit and receive IWTC = "WFF", stay on-benefit = "Benefit", or whichever gives a higher net income = "Max"'
+))
+
 save_excel_params <- function(
     params, output_path,
     firstRow = 2, firstCol = 2,
-    template_path = "inst/parameters/policy_parameters_template.csv"
+    params_output_template = PARAMS_TEMPLATE
 ) {
   params <- copy(params)
   
@@ -28,7 +87,6 @@ save_excel_params <- function(
     Parameter := stringr::str_replace_all(Parameter, "_", "/")
   ]
   
-  params_output_template <- fread(template_path)
   params_dt <- merge(params_output_template[, .(Parameter, Description)], params_dt, by = "Parameter")
   params_dt[, Parameter := factor(Parameter, levels = unique(params_output_template$Parameter))]
   setorder(params_dt, Parameter)

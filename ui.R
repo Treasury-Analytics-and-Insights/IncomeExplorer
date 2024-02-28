@@ -29,13 +29,19 @@ shinyUI(fluidPage(
   sidebarLayout(
     sidebarPanel(
       width = 4,
-      fluidRow(column(12, selectizeInput("select_scenarios", "Scenarios", choices = NULL, selected = NULL, multiple = TRUE))),
+      fluidRow(column(12, selectizeInput("selected_scenarios", "Scenarios", choices = NULL, selected = NULL, multiple = TRUE))),
       fluidRow(
         column(
           12, align = "right",
           actionButton("upload_scenarios_button", "Add scenarios", icon = shiny::icon("plus")),
-          uiOutput("download_params_button", inline = TRUE),
-          uiOutput("download_results_button", inline = TRUE)
+          actionButton(
+            "download_params_button", "Scenarios", icon = shiny::icon("download"),
+            onclick = "$('#download_params_button').attr('disabled', true); $('#download_params_button i').toggleClass('fa-spinner').toggleClass('fa-spin').attr('disabled', true);"
+          ),
+          actionButton(
+            "download_results_button", "Results", icon = shiny::icon("download"),
+            onclick = "$('#download_results_button').attr('disabled', true); $('#download_results_button i').toggleClass('fa-spinner').toggleClass('fa-spin');"
+          )
         )
       ),
       
@@ -76,16 +82,12 @@ shinyUI(fluidPage(
       # Input parter wage details, note that this is only
       # displayed if there is a partner
       fluidRow(
-        column(6, conditionalPanel(
-          condition = "input.Partnered == 1",
-          numericInput(
-            "gross_wage2", "Partner's hourly wage ($)",
-            min = 15, max = 100,
-            value = DEFAULT_HOURLY_WAGE, step = .5
-          )
-        )),
-        column(6, conditionalPanel(
-          condition = "input.Partnered == 1",
+        column(6, hidden(numericInput(
+          "gross_wage2", "Partner's hourly wage ($)",
+          min = 15, max = 100,
+          value = DEFAULT_HOURLY_WAGE, step = .1
+        ))),
+        column(6, hidden(
           numericInput(
             "hours2", "Partner's hours worked",
             min = 0, max = 80, value = 0, step = 5

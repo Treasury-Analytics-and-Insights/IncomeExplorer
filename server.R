@@ -7,10 +7,8 @@ suppressMessages({
   library(shiny)
   library(shinyjs)
   library(openxlsx)
-  library(rhandsontable)
   library(magrittr)
   library(data.table)
-  library(downloadthis)
 })
 
 # Define server logic required to run the app
@@ -32,6 +30,16 @@ shinyServer(function(input, output, session) {
   # Show the model on start up ...
   showModal(warning_modal)
   
+  observeEvent(input$Partnered, {
+    if (input$Partnered) {
+      show("gross_wage2")
+      show("hours2")
+    } else {
+      hide("gross_wage2")
+      hide("hours2")
+    }
+  })
+  
   #### Selecting and/or Uploading parameter files ####
   # Get default parameter files for scenarios
   default_files <- list.files(
@@ -41,30 +49,31 @@ shinyServer(function(input, output, session) {
   names(default_files) <- default_files_names
   
   # Store scenario files in a reactive variable
-  scenarios <- reactiveValues(files = default_files)
+  all_scenarios <- reactiveValues(names = default_files_names, paths = default_files)
+  loaded_scenarios <- reactiveValues(names = list(), params = list(), incomes = list())
   
   # When the warning dialog is closed, update the selection to add
   # default scenarios as choices - this is a workaround for a shinylive issue
   # because with normal R shiny the observeEvent after this one updates it for us
   observeEvent(input$close_warning, {
     updateSelectizeInput(
-      session, "select_scenarios",
-      choices = names(scenarios$files), selected = NULL
+      session, "selected_scenarios",
+      choices = all_scenarios$names, selected = NULL
     )
     removeModal()
   })
   
   # Update selection inputs when the available scenario files change
-  observeEvent(scenarios$files, {
+  observeEvent(all_scenarios$names, {
     updateSelectizeInput(
-      session, "select_scenarios",
-      choices = names(scenarios$files), selected = input$select_scenarios
+      session, "selected_scenarios",
+      choices = all_scenarios$names, selected = input$selected_scenarios
     )
   })
   
   # Enable download buttons only when a selection exists
   observe({
-    if (!is.null(input$select_scenarios)) {
+    if (length(input$selected_scenarios) > 0) {
       enable("download_params_button")
       enable("download_results_button")
     } else {
@@ -89,7 +98,7 @@ shinyServer(function(input, output, session) {
   observeEvent(input$upload_scenario_files, {
     new_scenarios <- req(input$upload_scenario_files)
     new_scenario_names <- new_scenarios$name %>% tools::file_path_sans_ext()
-    overlapping_names <- intersect(new_scenario_names, names(scenarios$files))
+    overlapping_names <- intersect(new_scenario_names, all_scenarios$names)
     for (overlapping_name in overlapping_names) {
       # Avoid using any existing names
       new_scenario_names[new_scenario_names == overlapping_name] <-
@@ -98,7 +107,8 @@ shinyServer(function(input, output, session) {
     new_scenario_files <- as.list(new_scenarios$datapath)
     names(new_scenario_files) <- new_scenario_names
     
-    scenarios$files <- c(new_scenario_files, scenarios$files)
+    all_scenarios$names <- c(new_scenario_names, all_scenarios$names)
+    all_scenarios$paths <- c(new_scenario_files, all_scenarios$paths)
     
     removeModal()
   })
@@ -106,18 +116,30 @@ shinyServer(function(input, output, session) {
   #######################################################
   # Loading parameters from files and calculating incomes
   #######################################################
-  
-  get_params <- reactive({
-    if (!is.null(input$select_scenarios)) {
-      selected_scenarios <- req(input$select_scenarios)
-      params_files <- req(scenarios$files[selected_scenarios])
-      params <- lapply(params_files, parameters_from_file)
-      names(params) <- selected_scenarios
+  observe({
+    # Check for newly selected scenarios, and load them
+    # Note that incomes are loaded as "reactive" values,
+    # and will be recalculated if family parameters are changed
+    if (length(loaded_scenarios$params) > 0) {
+      loaded_scenarios_names <- names(loaded_scenarios$params)
     } else {
-      # This is for shinylive which needs empty plots to initialise itself
-      params <- list()
+      loaded_scenarios_names <- c()
     }
-    return(params)
+    newly_selected_scenarios <- setdiff(input$selected_scenarios, loaded_scenarios_names)
+    if (length(newly_selected_scenarios) > 0) {
+      lapply(newly_selected_scenarios, function(newly_selected_scenario) {
+        new_params <- parameters_from_file(all_scenarios$paths[[newly_selected_scenario]])
+        new_income <- reactive({get_scenario_income(new_params)})
+        loaded_scenarios$params[[newly_selected_scenario]] <- new_params
+        loaded_scenarios$incomes[[newly_selected_scenario]] <- new_income
+      })
+    }
+    # Check for any loaded scenarios that are un-selected, and delete them
+    unselected_scenarios <- setdiff(loaded_scenarios_names, input$selected_scenarios)
+    if (length(unselected_scenarios) > 0) {
+      loaded_scenarios$params[unselected_scenarios] <- NULL
+      loaded_scenarios$incomes[unselected_scenarios] <- NULL
+    }
   })
   
   get_scenario_income <- function(params) {
@@ -145,10 +167,9 @@ shinyServer(function(input, output, session) {
   
   #### Join incomes together as one data.table ####
   get_scenario_incomes <- reactive({
-    params <- req(get_params())
-    scenario_income_list <- lapply(params, get_scenario_income)
-    names(scenario_income_list) <- names(params)
-    scenario_incomes <- rbindlist(scenario_income_list, idcol = "Scenario")
+    req(loaded_scenarios$incomes)
+    scenario_incomes_list <- lapply(loaded_scenarios$incomes, function(x) x())
+    scenario_incomes <- rbindlist(scenario_incomes_list, idcol = "Scenario")
     return(scenario_incomes)
   })
   
@@ -210,7 +231,7 @@ shinyServer(function(input, output, session) {
   output$income_composition_tabs <- renderUI({
     do.call(tabsetPanel, c(
       id = "income_composition_tabs",
-      lapply(input$select_scenarios, function(scenario) {
+      lapply(input$selected_scenarios, function(scenario) {
         tabPanel(
           scenario,
           plotlyOutput(paste0("plot_income_composition_", scenario), height = "500px")
@@ -221,43 +242,50 @@ shinyServer(function(input, output, session) {
   })
   
   # When the input selection changes, update the plot for each scenario
-  observeEvent(input$select_scenarios, {
-    for (scenario in input$select_scenarios) {
+  observeEvent(input$selected_scenarios, {
+    lapply(input$selected_scenarios, function(scenario) {
       plot_id <- paste0("plot_income_composition_", scenario)
-      observe({
-        output[[plot_id]] <- renderPlotly({
-          X_results <- req(get_scenario_incomes())
-          if (nrow(X_results) > 0) {
-            y_min <- 52*max(X_results[, wage_tax_and_ACC + benefit_tax])
-            y_max <- 52*max(X_results[, Net_Income])
-            output_plot <- income_composition_plot(
-              X_results[Scenario == scenario], y_min = y_min, y_max = y_max
-            )
-          } else {
-            output_plot <- empty_plot
-          }
-          return(output_plot)
-        })
+      output[[plot_id]] <- renderPlotly({
+        X_results <- req(get_scenario_incomes())
+        if (nrow(X_results) > 0) {
+          y_min <- 52*max(X_results[, wage_tax_and_ACC + benefit_tax])
+          y_max <- 52*max(X_results[, Net_Income])
+          output_plot <- income_composition_plot(
+            X_results[Scenario == scenario], y_min = y_min, y_max = y_max
+          )
+        } else {
+          output_plot <- empty_plot
+        }
+        return(output_plot)
       })
-    }
+    })
     # Remember which tab we were on
-    selected_income_composition_tab$tab <- input$income_composition_tabs
+    if (!is.null(input$income_composition_tabs)) {
+      if (input$income_composition_tabs %in% input$selected_scenarios) {
+        # Keep tab we are on since it is still in the selected scenarios
+        currently_selected_tab <- input$income_composition_tabs
+        selected_income_composition_tab$tab <- currently_selected_tab
+      } else if (length(input$selected_scenarios) > 0) {
+        # The tab we were on has been deleted, change to the last selected scenario
+        num_scenarios <- length(input$selected_scenarios)
+        last_selected_scenario <- input$selected_scenarios[num_scenarios]
+        selected_income_composition_tab$tab <- last_selected_scenario
+      }
+    }
   })
   
   #### Changed parameters ####
   output$changed_parameters <- renderTable({
-    params <- req(get_params())
+    params <- req(loaded_scenarios$params)
     get_parameter_changes(params)
   })
   
-  # Create "download scenarios" button using downloadthis because
-  # shinylive wasn't supporting downloadHandler
-  output$download_params_button <- renderUI({
-    params <- req(get_params())
+  observeEvent(input$download_params_button, {
+    params <- req(loaded_scenarios$params)
     param_names <- names(params)
-    param_paths <- scenarios$files[param_names]
+    param_paths <- all_scenarios$paths[param_names]
     if (length(param_paths) == 0) {
-      disabled(downloadButton("disabled_download_params", label = "Scenarios"))
+      disable(input$download_params_button)
     } else {
       # Create new excel files from the loaded parameters
       temp_directory <- file.path(tempdir(), as.integer(Sys.time()))
@@ -268,33 +296,32 @@ shinyServer(function(input, output, session) {
         save_excel_params(params[[param_name]], output_paths[[param_name]])
       }
       if (length(param_names) == 1) {
-        output_name <- param_names[1]
+        server_file_path <- output_paths[1]
+        output_name <- basename(output_paths[1])
       } else {
-        output_name <- "Scenarios"
+        server_file_path <- file.path(temp_directory, "Scenarios.zip")
+        zip::zip(zipfile = server_file_path, files = dir(temp_directory), root = temp_directory)
+        output_name <- "Scenarios.zip"
       }
-      downloadthis::download_file(
-        output_paths,
-        output_name = output_name,
-        button_label = "Scenarios",
-        icon = "fa fa-download"
+      js_download_file <- get_js_download_file(
+        server_file_path = server_file_path, download_file_name = output_name
       )
+      runjs(js_download_file)
+      
+      updateActionButton(session, "download_params_button", icon = icon("download"))
+      enable("download_params_button")
     }
   })
   
-  # Create "download results" button using downloadthis because
-  # shinylive wasn't supporting downloadHandler
-  output$download_results_button <- renderUI({
-    params <- req(get_params())
-    
+  observeEvent(input$download_results_button, {
+    params <- req(loaded_scenarios$params)
     if (length(params) == 0) {
-      disabled(downloadButton("disabled_download_results", label = "Results"))
+      disable(input$download_results_button)
     } else {
       output_path <- "IncomeExplorerResults.xlsx"
       scenario_incomes <- req(get_scenario_incomes())
-      scenario_names <- scenario_incomes[, unique(Scenario)]
-  
       parameter_differences <- get_parameter_changes(params)
-  
+
       # Details of the example family and input files
       details <- c(
         HourlyWage = input$wage1_hourl,
@@ -306,30 +333,18 @@ shinyServer(function(input, output, session) {
         AS_Area = input$AS_Area,
         Children_Ages = input$Children_ages
       )
-  
-      wb <- openxlsx::createWorkbook()
-      openxlsx::addWorksheet(wb, "Details")
-      openxlsx::writeData(wb, "Details", names(details), startCol = 1)
-      openxlsx::writeData(wb, "Details", details, startCol = 2)
-  
-      if (length(scenario_names) > 1) {
-        # Parameters that changed
-        openxlsx::addWorksheet(wb, "Scenario Differences")
-        openxlsx::writeData(wb, "Scenario Differences", parameter_differences)
-      }
-  
-      # Full sets of results (should probably be more selective)
-      for (scenario in scenario_names) {
-        openxlsx::addWorksheet(wb, scenario)
-        openxlsx::writeData(wb, scenario, scenario_incomes[Scenario == scenario])
-      }
-      openxlsx::saveWorkbook(wb, output_path, overwrite = TRUE)
       
-      downloadthis:::create_button(
-        button_label = "Results", button_type = "default",
-        output_file = output_path, tmp_file = output_path,
-        self_contained = FALSE, icon = "fa fa-download"
+      save_app_results(
+        details, parameter_differences, scenario_incomes, output_path
       )
+
+      js_download_file <- get_js_download_file(
+        server_file_path = output_path, download_file_name = output_path
+      )
+      runjs(js_download_file)
+      
+      updateActionButton(session, "download_results_button", icon = icon("download"))
+      enable("download_results_button")
     }
   })
 })
