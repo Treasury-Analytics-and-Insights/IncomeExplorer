@@ -9,6 +9,7 @@ suppressMessages({
   library(openxlsx)
   library(magrittr)
   library(data.table)
+  library(zip)
 })
 
 # Define server logic required to run the app
@@ -63,40 +64,9 @@ shinyServer(function(input, output, session) {
     removeModal()
   })
   
-  # Update selection inputs when the available scenario files change
-  observeEvent(all_scenarios$names, {
-    updateSelectizeInput(
-      session, "selected_scenarios",
-      choices = all_scenarios$names, selected = input$selected_scenarios
-    )
-  })
-  
-  # Enable download buttons only when a selection exists
-  observe({
-    if (length(input$selected_scenarios) > 0) {
-      enable("download_params_button")
-      enable("download_results_button")
-    } else {
-      disable("download_params_button")
-      disable("download_results_button")
-    }
-  })
-  
-  # Show a modal dialog when the upload_scenario_button is clicked
-  observeEvent(input$upload_scenarios_button, {
-    showModal(
-      modalDialog(
-        fileInput(
-          "upload_scenario_files", label = "Upload scenarios", buttonLabel = "Browse",
-          multiple = TRUE, accept = c(".xlsx", ".xls", ".yaml", ".yml"),
-        ), footer = modalButton("Close"), easyClose = TRUE
-      )
-    )
-  })
-  
   # Add a scenario to the list when a new scenario file is uploaded
-  observeEvent(input$upload_scenario_files, {
-    new_scenarios <- req(input$upload_scenario_files)
+  observeEvent(input$upload_scenarios_button, {
+    new_scenarios <- req(input$upload_scenarios_button)
     new_scenario_names <- new_scenarios$name %>% tools::file_path_sans_ext()
     overlapping_names <- intersect(new_scenario_names, all_scenarios$names)
     for (overlapping_name in overlapping_names) {
@@ -110,16 +80,22 @@ shinyServer(function(input, output, session) {
     all_scenarios$names <- c(new_scenario_names, all_scenarios$names)
     all_scenarios$paths <- c(new_scenario_files, all_scenarios$paths)
     
-    removeModal()
+    # Add the new scenarios to the current selection
+    new_selection <- c(input$selected_scenarios, new_scenario_names)
+    updateSelectizeInput(
+      session, "selected_scenarios",
+      choices = all_scenarios$names, selected = new_selection
+    )
   })
   
   #######################################################
   # Loading parameters from files and calculating incomes
   #######################################################
+  
+  # Check for newly selected scenarios, and load them
+  # Note that incomes are loaded as "reactive" values,
+  # and will be recalculated if family parameters are changed
   observe({
-    # Check for newly selected scenarios, and load them
-    # Note that incomes are loaded as "reactive" values,
-    # and will be recalculated if family parameters are changed
     if (length(loaded_scenarios$params) > 0) {
       loaded_scenarios_names <- names(loaded_scenarios$params)
     } else {
@@ -140,6 +116,8 @@ shinyServer(function(input, output, session) {
       loaded_scenarios$params[unselected_scenarios] <- NULL
       loaded_scenarios$incomes[unselected_scenarios] <- NULL
     }
+    # Set loaded order based on selection order
+    loaded_scenarios$names <- input$selected_scenarios
   })
   
   get_scenario_income <- function(params) {
@@ -168,7 +146,9 @@ shinyServer(function(input, output, session) {
   #### Join incomes together as one data.table ####
   get_scenario_incomes <- reactive({
     req(loaded_scenarios$incomes)
-    scenario_incomes_list <- lapply(loaded_scenarios$incomes, function(x) x())
+    # Index into the loaded incomes using the selection order rather than loaded order
+    loaded_scenario_incomes <- loaded_scenarios$incomes[loaded_scenarios$names]
+    scenario_incomes_list <- lapply(loaded_scenario_incomes, function(x) x())
     scenario_incomes <- rbindlist(scenario_incomes_list, idcol = "Scenario")
     return(scenario_incomes)
   })
@@ -274,12 +254,27 @@ shinyServer(function(input, output, session) {
     }
   })
   
-  #### Changed parameters ####
+  #### Display changed parameters ####
   output$changed_parameters <- renderTable({
-    params <- req(loaded_scenarios$params)
+    # Index into loaded params using the saved selection order
+    params <- req(loaded_scenarios$params[loaded_scenarios$names])
     get_parameter_changes(params)
   })
   
+  #### Download buttons ####
+  
+  # Enable download buttons only when a selection exists
+  observe({
+    if (length(input$selected_scenarios) > 0) {
+      enable("download_params_button")
+      enable("download_results_button")
+    } else {
+      disable("download_params_button")
+      disable("download_results_button")
+    }
+  })
+  
+  # Download scenario parameters
   observeEvent(input$download_params_button, {
     params <- req(loaded_scenarios$params)
     param_names <- names(params)
@@ -313,6 +308,7 @@ shinyServer(function(input, output, session) {
     }
   })
   
+  # Download scenario results
   observeEvent(input$download_results_button, {
     params <- req(loaded_scenarios$params)
     if (length(params) == 0) {

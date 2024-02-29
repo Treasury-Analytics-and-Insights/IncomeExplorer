@@ -33,14 +33,15 @@ shinyUI(fluidPage(
       fluidRow(
         column(
           12, align = "right",
-          actionButton("upload_scenarios_button", "Add scenarios", icon = shiny::icon("plus")),
-          actionButton(
-            "download_params_button", "Scenarios", icon = shiny::icon("download"),
-            onclick = "$('#download_params_button').attr('disabled', true); $('#download_params_button i').toggleClass('fa-spinner').toggleClass('fa-spin').attr('disabled', true);"
+          fileInputButton(
+            "upload_scenarios_button", buttonLabel = "Add scenarios", icon = icon("plus"),
+            multiple = TRUE, accept = c(".xlsx", ".xls", ".yaml", ".yml"),
           ),
-          actionButton(
-            "download_results_button", "Results", icon = shiny::icon("download"),
-            onclick = "$('#download_results_button').attr('disabled', true); $('#download_results_button i').toggleClass('fa-spinner').toggleClass('fa-spin');"
+          actionButtonLoading(
+            "download_params_button", "Scenarios", icon = icon("download")
+          ),
+          actionButtonLoading(
+            "download_results_button", "Results", icon = icon("download")
           )
         )
       ),
