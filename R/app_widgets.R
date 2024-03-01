@@ -1,6 +1,6 @@
 fileInputButton <- function(
     inputId, buttonLabel = "Browse...", icon = NULL,
-    multiple = FALSE, accept = NULL, width = NULL, capture = NULL
+    multiple = FALSE, accept = NULL, capture = NULL
 )
 {
   restoredValue <- restoreInput(id = inputId, default = NULL)

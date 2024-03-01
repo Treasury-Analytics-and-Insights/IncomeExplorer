@@ -29,19 +29,31 @@ shinyUI(fluidPage(
   sidebarLayout(
     sidebarPanel(
       width = 4,
-      fluidRow(column(12, selectizeInput("selected_scenarios", "Scenarios", choices = NULL, selected = NULL, multiple = TRUE))),
       fluidRow(
         column(
-          12, align = "right",
+          12,
+          selectizeInput(
+            "selected_scenarios", "Policy Scenarios",
+            choices = NULL, selected = NULL, multiple = TRUE,
+            options = list(
+              placeholder = "Select policy scenarios...",
+              plugins = list("remove_button")
+            )
+          )
+        )
+      ),
+      fluidRow(
+        column(
+          12, align = "center",
           fileInputButton(
             "upload_scenarios_button", buttonLabel = "Add scenarios", icon = icon("plus"),
             multiple = TRUE, accept = c(".xlsx", ".xls", ".yaml", ".yml"),
           ),
           actionButtonLoading(
-            "download_params_button", "Scenarios", icon = icon("download")
+            "download_params_button", "Download scenarios", icon = icon("download")
           ),
           actionButtonLoading(
-            "download_results_button", "Results", icon = icon("download")
+            "download_results_button", "Download Results", icon = icon("download")
           )
         )
       ),
@@ -124,7 +136,31 @@ shinyUI(fluidPage(
           p(style = "margin-bottom: 0.5em"),
           uiOutput("income_composition_tabs")
         ),
-        tabPanel("Policy Changes", tableOutput("changed_parameters"))
+        tabPanel("Policy Changes", tableOutput("changed_parameters")),
+        tabPanel(
+          "About",
+          mainPanel(
+            h2("Overview"),
+            p(
+              "This app is designed to support policy analysts in understanding the relationship between gross income and net income due to the Tax and Welfare policies of New Zealand.",
+              "The app considers a theoretical family, and calculates various measures of work incentives, including net income, effective marginal tax rates (EMTR's), replacement rates (RR's), and participation tax rates (PTR's)."
+            ),
+            h2("Usage"),
+            tags$ul(
+              tags$li("The app is preloaded with policy scenarios from the most recently released Economic & Fiscal Update (EFU) from the New Zealand Treasury. You can select any number of these scenarios by clicking in the 'Select policy scenarios...' selection field and then selecting the drop-down list that appears."),
+              tags$li("Selected policy scenarios can then be downloaded in Excel format by clicking the 'Download Scenarios' button. These can be edited, and then uploaded back into the app using the 'Add Scenarios' button."),
+              tags$li("The full calculation results can be downloaded in Excel format by clicking the 'Download Results' button."),
+              tags$li("The app allows you to customise the example family by setting parameters relating to their earnings, accommodation costs, number of children, and whether the primary earner has a partner or not and what their partner's earnings are.")
+            ),
+            h2("Disclaimer"),
+            p(
+              "The IncomeExplorer app was developed by the Analytics & Insights team in the New Zealand Treasury's Office of the Chief Economic Adviser.",
+              "It is provided as-is, for research purposes only, with absolutely no warranty or guarantee of correctness.",
+              "The public version of this app should not be used for any sensitive work.",
+              "Please contact the Analytics & Insights team if you require assistance in running the app in a secure environment."
+            )
+          )
+        )
       )
     )
   )
