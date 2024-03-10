@@ -1,3 +1,5 @@
+# Based on the `create_blob` function of downloadthis
+# https://github.com/fmmattioni/downloadthis/blob/master/R/utils.R
 get_js_download_file <- function(server_file_path, download_file_name) {
   base64_data <- sprintf(
     "data:%s;base64,%s",
