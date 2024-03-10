@@ -147,7 +147,7 @@ shinyUI(fluidPage(
             ),
             h2("Usage"),
             tags$ul(
-              tags$li("The app is preloaded with policy scenarios from the most recently released Economic & Fiscal Update (EFU) from the New Zealand Treasury. You can select any number of these scenarios by clicking in the 'Select policy scenarios...' selection field and then selecting the drop-down list that appears."),
+              tags$li("The app is preloaded with policy scenarios from the most recently released Economic & Fiscal Update (EFU) from the New Zealand Treasury. You can select any number of these scenarios by clicking in the 'Select policy scenarios...' selection field and then selecting from the drop-down list that appears."),
               tags$li("Selected policy scenarios can then be downloaded in Excel format by clicking the 'Download Scenarios' button. These can be edited, and then uploaded back into the app using the 'Add Scenarios' button."),
               tags$li("The full calculation results can be downloaded in Excel format by clicking the 'Download Results' button."),
               tags$li("The app allows you to customise the example family by setting parameters relating to their earnings, accommodation costs, number of children, and whether the primary earner has a partner or not and what their partner's earnings are.")
