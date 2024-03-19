@@ -33,15 +33,15 @@ parameters_from_file <- function(parameters_file) {
     }
   }
   # Add defaults for any missing system params
-  default_system_params <- list(
-    "MFTC_WEP_scaling" = 1,
-    "WFF_or_Benefit" = "Max"
-  )
+  default_system_params <- parameters_from_df(as.data.frame(PARAMS_TEMPLATE))
   for (app_param in names(default_system_params)) {
     if (!(app_param %in% names(parameters))) {
+      print(sprintf("Setting missing parameter %s to the default: %s", app_param, default_system_params[app_param]))
       parameters[[app_param]] <- default_system_params[[app_param]]
     }
   }
+  # Subset to only the required parameters, drop any extras
+  parameters <- parameters[names(default_system_params)]
   return(parameters)
 }
 
