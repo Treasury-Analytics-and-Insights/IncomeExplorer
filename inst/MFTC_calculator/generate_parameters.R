@@ -16,6 +16,6 @@ IncomeExplorer::split_TAWA_parameters(
 IncomeExplorer::TAWA_to_app_param_files(
   input_param_paths = list.files("TAWA_Parameters/", full.names = TRUE),
   output_param_dir = "App_Parameters/",
-  output_suffix = "IncomeExplorer_",
+  output_prefix = "IncomeExplorer_",
   output_template_path = "App_Parameters_Template.xlsx"
 )
