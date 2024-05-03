@@ -213,7 +213,7 @@ emtr <- function(
   MFTC_amount <- Parameters$FamilyAssistance_MFTC_Rates_MinimumIncome / 52L
   
   # Calculate inverse thresholds for the tax system (weekly)
-  NIT <- Net_Thresholds(Parameters$Tax_BaseScale)
+  NIT <- Net_Thresholds(Tax_BaseScale_Weekly)
   
   # Assign benefit rates and abatement schedules ------------------------
   if (Partnered == TRUE) {
