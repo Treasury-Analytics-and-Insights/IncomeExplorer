@@ -129,6 +129,7 @@ get_parameter_changes <- function(params_list) {
     params_list_str[, Parameter := factor(Parameter, levels = unique(Parameter))]
     
     # Calculate all sequential changes
+    params_list_str[, Change_Value := ""] # Initialise to string type
     params_list_str[, Change_Value := ifelse(Value == shift(Value), NA, Value), by = Parameter]
     
     changes <- dcast(
