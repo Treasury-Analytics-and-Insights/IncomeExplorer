@@ -382,12 +382,32 @@ remove_IWTC_from_params <- function(input_params) {
 choose_IWTC_or_benefit <- function(X, X_without_IWTC) {
   # Merge max
   SQ_net_income_comparison <- cbind(
-    X[, .(With_IWTC = Net_Income)],
-    X_without_IWTC[, .(Without_IWTC = Net_Income)]
+    X[, .(
+      Net_Income_With_IWTC = Net_Income,
+      Has_WFF_or_BS_With_IWTC = (WFF_abated + BestStart_Abated) > 0
+    )],
+    X_without_IWTC[, .(
+      Net_Income_Without_IWTC = Net_Income,
+      Has_IETC_Without_IWTC = IETC_abated > 0
+    )]
   )
   SQ_net_income_comparison[, row_ID := 1:.N]
-  With_IWTC_indices <- SQ_net_income_comparison[With_IWTC >= Without_IWTC, row_ID]
-  Without_IWTC_indices <- SQ_net_income_comparison[Without_IWTC > With_IWTC, row_ID]
+  # Choose IWTC if it gives greater income.
+  # Also if the family would be receiving IETC but is eligible for WFF/BS, then
+  # we have to keep them on WFF/BS due to IETC eligibility criteria.
+  With_IWTC_indices <- SQ_net_income_comparison[
+    (Net_Income_With_IWTC >= Net_Income_Without_IWTC) |
+      (Has_WFF_or_BS_With_IWTC & Has_IETC_Without_IWTC),
+    row_ID
+  ]
+  # Choose without-IWTC if it gives greater income.
+  # Also if the family would be receiving IETC but is eligible for WFF/BS, then
+  # we cannot give them IETC due to IETC eligibility criteria.
+  Without_IWTC_indices <- SQ_net_income_comparison[
+    Net_Income_Without_IWTC > Net_Income_With_IWTC &
+      !(Has_WFF_or_BS_With_IWTC & Has_IETC_Without_IWTC),
+    row_ID
+  ]
   
   With_IWTC <- X[With_IWTC_indices]
   Without_IWTC <- X_without_IWTC[Without_IWTC_indices]
