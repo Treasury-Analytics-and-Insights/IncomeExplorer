@@ -90,6 +90,77 @@ wks_in_year <- function(year) {
   return(weeks)
 }
 
+# EMTR - effective marginal tax rate
+get_emtr <- function(net_income, next_net_income, steps_per_dollar) {
+  emtr <- 1 - steps_per_dollar*(next_net_income - net_income)
+  emtr <- zoo::na.locf(emtr)
+  return(emtr)
+}
+
+# RR - Replacement rate
+get_rr <- function(non_working_net_income, working_net_income) {
+  rr <- non_working_net_income / working_net_income
+  return(rr)
+}
+
+# PTR - Participation tax rate
+get_ptr <- function(net_income, gross_income) {
+  ptr <- 1 - (net_income - first(net_income)) / gross_income
+  return(ptr)
+}
+
+# The sum of these columns is the definition of Net_Income
+net_income_components <- c(
+  "net_wage",
+  "net_benefit",
+  "WFF_abated",
+  "MFTC",
+  "IETC_abated",
+  "WinterEnergy",
+  "BestStart_Total",
+  "AS_Amount"
+)
+
+# Calculate EMTR, RR, and PTR; including decompositions of each rate
+calculate_rates <- function(X, net_income_components, steps_per_dollar) {
+  # EMTR, including decomposition
+  X[, EMTR := get_emtr(Net_Income, shift(Net_Income, 1L, type = "lead"), steps_per_dollar)]
+  
+  X[, paste0("EMTR_", net_income_components) := lapply(.SD, function(net_income_component) {
+    emtr_component <- get_emtr(
+      net_income = net_income_component,
+      next_net_income = shift(net_income_component, 1L, type = "lead"),
+      steps_per_dollar
+    ) - 1 # Subtract 1 from components
+    return(emtr_component)
+  }), .SDcols = net_income_components]
+  X[, EMTR_net_wage := EMTR_net_wage + 1] # Add 1 back for the main component
+  
+  # Replacement rate - note not linear in Net_Income,
+  # so for decomposition let's fix the working net income
+  X[, RR := get_rr(first(Net_Income), Net_Income)]
+  
+  X[, paste0("RR_", net_income_components) := lapply(.SD, function(net_income_component) {
+    get_rr(
+      non_working_net_income = first(net_income_component),
+      working_net_income = Net_Income # Keep this fixed when calculating components
+    )
+  }), .SDcols = net_income_components]
+  
+  # Participation tax rate, including decomposition
+  X[, PTR := get_ptr(Net_Income, gross_wage1 + gross_wage2)]
+  
+  X[, paste0("PTR_", net_income_components) := lapply(.SD, function(net_income_component) {
+    get_ptr(
+      net_income = net_income_component,
+      gross_income = gross_wage1 + gross_wage2
+    ) - 1 # Subtract 1 from components
+  }), .SDcols = net_income_components]
+  X[, PTR_net_wage := PTR_net_wage + 1] # Add 1 back for the main component
+  
+  return(X)
+}
+
 emtr <- function(
   # System parameters
   Parameters,
@@ -566,69 +637,16 @@ emtr <- function(
     WFF_abated = FTC_abated + IWTC_abated
   )]
   
-  # Net income
-  net_income_components <- c(
-    "net_wage",
-    "net_benefit",
-    "WFF_abated",
-    "MFTC",
-    "IETC_abated",
-    "WinterEnergy",
-    "BestStart_Total",
-    "AS_Amount"
-  )
-  X[, Net_Income := rowSums(.SD), .SDcols = net_income_components]
-  
-  # EMTR, including decomposition
-  get_emtr <- function(net_income, next_net_income) {
-    emtr <- 1 - steps_per_dollar*(next_net_income - net_income)
-    emtr <- zoo::na.locf(emtr)
-    return(emtr)
-  }
-  X[, EMTR := get_emtr(Net_Income, shift(Net_Income, 1L, type = "lead"))]
-  
-  X[, paste0("EMTR_", net_income_components) := lapply(.SD, function(net_income_component) {
-    emtr_component <- get_emtr(
-      net_income = net_income_component,
-      next_net_income = shift(net_income_component, 1L, type = "lead")
-    ) - 1 # Subtract 1 from components
-    return(emtr_component)
-  }), .SDcols = net_income_components]
-  X[, EMTR_net_wage := EMTR_net_wage + 1] # Add 1 back for the main component
-  
-  # Replacement rate - note not linear in Net_Income,
-  # so for decomposition let's fix the working net income
-  get_rr <- function(non_working_net_income, working_net_income) {
-    rr <- non_working_net_income / working_net_income
-    return(rr)
-  }
-  X[, RR := get_rr(first(Net_Income), Net_Income)]
-  
-  X[, paste0("RR_", net_income_components) := lapply(.SD, function(net_income_component) {
-    get_rr(
-      non_working_net_income = first(net_income_component),
-      working_net_income = Net_Income # Keep this fixed when calculating components
-    )
-  }), .SDcols = net_income_components]
-  
-  # Participation tax rate, including decomposition
-  get_ptr <- function(net_income, gross_income) {
-    ptr <- 1 - (net_income - first(net_income)) / gross_income
-    return(ptr)
-  }
-  X[, PTR := get_ptr(Net_Income, gross_wage1 + gross_wage2)]
-  
-  X[, paste0("PTR_", net_income_components) := lapply(.SD, function(net_income_component) {
-    get_ptr(
-      net_income = net_income_component,
-      gross_income = gross_wage1 + gross_wage2
-    ) - 1 # Subtract 1 from components
-  }), .SDcols = net_income_components]
-  X[, PTR_net_wage := PTR_net_wage + 1] # Add 1 back for the main component
-  
+  # Net income - see definition of `net_income_components`
   # As in TAWA proc the disposable income is calculated as: 
   # P_Income_Total + P_FamilyAssistance_Total + P_TaxCredit_IETC - P_Income_TaxPayable - P_ACC_LevyPayable
   # Same definition as "Net_Income", so use "Net_Income" as disposable income.
+  X[, Net_Income := rowSums(.SD), .SDcols = net_income_components]
+  X[, Net_Income_annual := Net_Income*weeks_in_year]
+  
+  # Calculate EMTRs, RRs, and PTRs; and their decomposition into each
+  # net income component
+  X <- calculate_rates(X, net_income_components, steps_per_dollar)
   
   # Number of children under 14
   LT_14 <- sum(Children_ages < 14)

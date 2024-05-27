@@ -261,10 +261,8 @@ income_composition_plot <- function(
 }
 
 # Plot net incomes by Scenario
-compare_net_income_plot <- function(input_data, weeks_in_year = 52L) {
+compare_net_income_plot <- function(input_data) {
   income <- copy(input_data)
-  #convert weekly income to annual
-  income[, Net_Income_annual := Net_Income*weeks_in_year]
   income[, Scenario := factor(Scenario, levels = unique(Scenario))]
   
   output_plot <- plot_ly(
@@ -273,13 +271,26 @@ compare_net_income_plot <- function(input_data, weeks_in_year = 52L) {
     line = list(color = tsy_palette, width = 3),
     text = ~paste(
       sprintf("<i>%s</i>", Scenario),
+      "<br><b>Annual</b>",
       sprintf(
-        "<br><b>Weekly wage:</b> %s (%s hrs)",
+        "<br>Gross wages: %s",
+        scales::dollar(gross_wage1_annual, accuracy = 0.01)
+      ),
+      sprintf(
+        "<br>Net income: %s",
+        scales::dollar(Net_Income_annual)
+      ),
+      "<br><b>Weekly</b>",
+      sprintf(
+        "<br>Gross wages: %s (%s hrs)",
         scales::dollar(gross_wage1, accuracy = 0.01),
         scales::comma(hours1, accuracy = 0.1)
       ),
-      sprintf("<br><b>Net weekly income:</b> %s", scales::dollar(Net_Income)),
-      "<br><b>Income breakdown</b>",
+      sprintf(
+        "<br>Net income: %s",
+        scales::dollar(Net_Income)
+      ),
+      "<br><b>Income breakdown (per week)</b>",
       "<br>Net wage:", scales::dollar(net_wage),
       "<br>Net benefit:", scales::dollar(net_benefit),
       "<br>WFF:", scales::dollar(WFF_abated),
@@ -293,7 +304,7 @@ compare_net_income_plot <- function(input_data, weeks_in_year = 52L) {
   ) %>%
     add_trace(
       x = ~hours1, y = 0, xaxis = "x2", showlegend = FALSE, inherit = FALSE,
-      type = "scatter", mode = "none"
+      type = "scatter", mode = "none", hoverinfo = "none"
     ) %>%
     layout(
       xaxis2 = list(
@@ -330,8 +341,13 @@ plot_rates <- function(input_data, rate_type, ylabel) {
     line = list(color = tsy_palette, width = 3),
     text = ~paste(
       sprintf("<i>%s</i>", Scenario),
+      "<br><b>Gross wage</b>",
       sprintf(
-        "<br><b>Weekly wage:</b> %s (%s hrs)",
+        "<br>Annual: %s",
+        scales::dollar(gross_wage1_annual, accuracy = 0.01)
+      ),
+      sprintf(
+        "<br>Weekly: %s (%s hrs)",
         scales::dollar(gross_wage1, accuracy = 0.01),
         scales::comma(hours1, accuracy = 0.1)
       ),
@@ -350,7 +366,7 @@ plot_rates <- function(input_data, rate_type, ylabel) {
   ) %>%
     add_trace(
       x = ~hours1, y = ~0, xaxis = "x2", showlegend = FALSE, inherit = FALSE,
-      type = "scatter", mode = "none"
+      type = "scatter", mode = "none", hoverinfo = "none"
     ) %>%
     layout(
       xaxis2 = list(
@@ -415,8 +431,9 @@ choose_IWTC_or_benefit <- function(X, X_without_IWTC) {
   X <- rbind(With_IWTC, Without_IWTC, fill = TRUE)
   setorderv(X, "hours1")
   
-  X[, EMTR := 1 - 1L * (shift(Net_Income, 1L, type = "lead") - Net_Income)]
-  X[, EMTR := zoo::na.locf(EMTR)]
+  # Re-calculate rates
+  steps_per_dollar <- 1 / (X[2, gross_wage1] - X[1, gross_wage1]) # Assume constant
+  X <- calculate_rates(X, net_income_components, steps_per_dollar)
   
   return(X)
 }
