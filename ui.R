@@ -157,7 +157,8 @@ shinyUI(fluidPage(
               "The IncomeExplorer app was developed by the Analytics & Insights team in the New Zealand Treasury's Office of the Chief Economic Adviser.",
               "It is provided as-is, for research purposes only, with absolutely no warranty or guarantee of correctness.",
               "The public version of this app should not be used for any sensitive work.",
-              "Please contact the Analytics & Insights team if you require assistance in running the app in a secure environment."
+              "Please ", a("contact the Analytics & Insights team", href = "mailto:AnalyticsAndInsights@treasury.govt.nz"),
+              " if you require assistance in running the app in a secure environment."
             )
           )
         )
