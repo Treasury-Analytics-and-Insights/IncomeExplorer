@@ -164,7 +164,7 @@ get_parameter_changes <- function(params_list) {
 
 
 # Plot income composition
-income_composition_plot <- function(
+plot_income_composition <- function(
     EMTR_table, y_min = NULL, y_max = NULL, weeks_in_year = 52L
 ) {
   
@@ -261,7 +261,7 @@ income_composition_plot <- function(
 }
 
 # Plot net incomes by Scenario
-compare_net_income_plot <- function(input_data) {
+plot_net_income <- function(input_data) {
   income <- copy(input_data)
   income[, Scenario := factor(Scenario, levels = unique(Scenario))]
   

@@ -164,7 +164,7 @@ shinyServer(function(input, output, session) {
   output$plot_netincome <- renderPlotly({
     X_results <- req(get_scenario_incomes())
     if (nrow(X_results) > 0) {
-      output_plot <- compare_net_income_plot(X_results)
+      output_plot <- plot_net_income(X_results)
     } else {
       output_plot <- empty_plot
     }
@@ -230,7 +230,7 @@ shinyServer(function(input, output, session) {
         if (nrow(X_results) > 0) {
           y_min <- 52*min(X_results[, wage_tax_and_ACC + benefit_tax])
           y_max <- 52*max(X_results[, Net_Income])
-          output_plot <- income_composition_plot(
+          output_plot <- plot_income_composition(
             X_results[Scenario == scenario], y_min = y_min, y_max = y_max
           )
         } else {
