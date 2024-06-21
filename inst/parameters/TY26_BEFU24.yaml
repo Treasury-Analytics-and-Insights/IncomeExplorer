@@ -1,6 +1,6 @@
-modelyear: 2027.0
+modelyear: 2026.0
 ACC_LevyRate: 0.016
-ACC_MaxLeviableIncome: 148263.0
+ACC_MaxLeviableIncome: 145242.0
 Accommodation_AbatementRate: 0.25
 Accommodation_BaseRateThreshold_Mortgage: 0.3
 Accommodation_BaseRateThreshold_Rent: 0.25
@@ -31,10 +31,10 @@ Benefits_JSS_CoupleAbatementScale:
   rates:
   - 0.0
   - 0.35
-Benefits_JSS_Rate_Couple: 326.66
-Benefits_JSS_Rate_CoupleParent: 344.94
-Benefits_JSS_Rate_Single: 383.94
-Benefits_JSS_Rate_SoleParent: 537.45
+Benefits_JSS_Rate_Couple: 308.3
+Benefits_JSS_Rate_CoupleParent: 325.55
+Benefits_JSS_Rate_Single: 362.36
+Benefits_JSS_Rate_SoleParent: 507.26
 Benefits_SPS_AbatementScale:
   thresholds:
   - 0.0
@@ -44,7 +44,7 @@ Benefits_SPS_AbatementScale:
   - 0.0
   - 0.3
   - 0.7
-Benefits_SPS_Rate: 537.45
+Benefits_SPS_Rate: 507.26
 Benefits_Entitlement_Age_SPS_ChildLowerBound: 14.0
 Benefits_WinterEnergy_Rates_Single: 450.0
 Benefits_WinterEnergy_Rates_CoupleOrDeps: 700.0
@@ -56,15 +56,15 @@ FamilyAssistance_Abatement_AbatementScale:
   - 0.0
   - 0.27
 FamilyAssistance_Abatement_Order: 0.0
-FamilyAssistance_FTC_Rates_FirstChild: 7963.0
-FamilyAssistance_FTC_Rates_SubsequentChild: 6488.0
+FamilyAssistance_FTC_Rates_FirstChild: 7524.0
+FamilyAssistance_FTC_Rates_SubsequentChild: 6130.0
 FamilyAssistance_IWTC_Rates_UpTo3Children: 3770.0
 FamilyAssistance_IWTC_Rates_SubsequentChildren: 780.0
 FamilyAssistance_IWTC_Eligibility: 1.0
 FamilyAssistance_FullTimeWorkingHours_Couple: 30.0
 FamilyAssistance_FullTimeWorkingHours_Single: 20.0
-FamilyAssistance_IWTC_IncomeThreshold_Single: 1184.94
-FamilyAssistance_IWTC_IncomeThreshold_Couple: 1184.94
+FamilyAssistance_IWTC_IncomeThreshold_Single: 1208.43
+FamilyAssistance_IWTC_IncomeThreshold_Couple: 1208.43
 FamilyAssistance_IWTC_ToBeneficiaries: 0.0
 FamilyAssistance_IWTC_PhaseIn_Single:
   thresholds: 0.0
@@ -72,7 +72,7 @@ FamilyAssistance_IWTC_PhaseIn_Single:
 FamilyAssistance_IWTC_PhaseIn_Couple:
   thresholds: 0.0
   rates: 0.0
-FamilyAssistance_MFTC_Rates_MinimumIncome: 36868.0
+FamilyAssistance_MFTC_Rates_MinimumIncome: 35620.0
 FamilyAssistance_BestStart_Abatement_AbatementScale:
   thresholds:
   - 0.0
@@ -80,8 +80,8 @@ FamilyAssistance_BestStart_Abatement_AbatementScale:
   rates:
   - 0.0
   - 0.21
-FamilyAssistance_BestStart_Rates_Age0: 4062.0
-FamilyAssistance_BestStart_Rates_Age1or2: 4062.0
+FamilyAssistance_BestStart_Rates_Age0: 3838.0
+FamilyAssistance_BestStart_Rates_Age1or2: 3838.0
 IETC_AbatementScale:
   thresholds:
   - 0.0
