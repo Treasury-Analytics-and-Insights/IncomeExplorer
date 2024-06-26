@@ -10,6 +10,6 @@ for (param_path in param_paths) {
   yaml_param_filename <- basename(param_path) %>%
     tools::file_path_sans_ext() %>%
     stringr::str_remove(paste0("_", efu)) %>%
-    {paste0(efu, "_", ., ".yaml")}
+    {paste0(., "_", efu, ".yaml")}
   yaml::write_yaml(params, file.path("inst/parameters", yaml_param_filename))
 }

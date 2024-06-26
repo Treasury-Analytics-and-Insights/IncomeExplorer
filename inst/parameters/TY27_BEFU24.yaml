@@ -58,7 +58,7 @@ FamilyAssistance_Abatement_AbatementScale:
 FamilyAssistance_Abatement_Order: 0.0
 FamilyAssistance_FTC_Rates_FirstChild: 7524.0
 FamilyAssistance_FTC_Rates_SubsequentChild: 6130.0
-FamilyAssistance_IWTC_Rates_UpTo3Children: 3770.0
+FamilyAssistance_IWTC_Rates_UpTo3Children: 5070.0
 FamilyAssistance_IWTC_Rates_SubsequentChildren: 780.0
 FamilyAssistance_IWTC_Eligibility: 1.0
 FamilyAssistance_FullTimeWorkingHours_Couple: 30.0
@@ -72,7 +72,7 @@ FamilyAssistance_IWTC_PhaseIn_Single:
 FamilyAssistance_IWTC_PhaseIn_Couple:
   thresholds: 0.0
   rates: 0.0
-FamilyAssistance_MFTC_Rates_MinimumIncome: 36036.0
+FamilyAssistance_MFTC_Rates_MinimumIncome: 34632.0
 FamilyAssistance_BestStart_Abatement_AbatementScale:
   thresholds:
   - 0.0
@@ -85,7 +85,7 @@ FamilyAssistance_BestStart_Rates_Age1or2: 3838.0
 IETC_AbatementScale:
   thresholds:
   - 0.0
-  - 44000.0
+  - 66000.0
   rates:
   - 0.0
   - 0.13
@@ -95,9 +95,9 @@ IETC_OnlyFamiliesWithoutChildren: 0.0
 Tax_BaseScale:
   thresholds:
   - 0.0
-  - 14000.0
-  - 48000.0
-  - 70000.0
+  - 15600.0
+  - 53500.0
+  - 78100.0
   - 180000.0
   rates:
   - 0.105
