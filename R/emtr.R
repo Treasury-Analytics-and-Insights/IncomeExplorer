@@ -1,9 +1,49 @@
 parameters_from_file <- function(parameters_file) {
-  parameters_df <- openxlsx::read.xlsx(parameters_file)
-  parameters <- parameters_from_df(parameters_df)
+  params_type <- tools::file_ext(parameters_file)
+  if (params_type %in% c("xlsx", "xls")) {
+    parameters_df <- openxlsx::read.xlsx(parameters_file, sheet = 1) %>% as.data.frame()
+    parameters <- parameters_from_df(parameters_df)
+  } else if (params_type %in% c("yaml", "yml")) {
+    parameters <- yaml::read_yaml(parameters_file)
+  } else {
+    error_msg <- paste0("Unsupported params type: ", params_type)
+    stop(error_msg)
+  }
+  # Rename any missing app parameters if possible
+  renamed_app_params <- c(
+    "FamilyAssistance_FTC_Rates_FirstChild" = "FamilyAssistance_FTC_Rates_FirstChild0to15",
+    "FamilyAssistance_FTC_Rates_SubsequentChild" = "FamilyAssistance_FTC_Rates_SecondChild0to12",
+    "FamilyAssistance_IWTC_Eligibility" = "FamilyAssistance_IWTC_IncomeTest",
+    "FamilyAssistance_IWTC_IncomeThreshold_Couple" = "FamilyAssistance_IWTC_IncomeThreshold",
+    "FamilyAssistance_IWTC_IncomeThreshold_Single" = "FamilyAssistance_IWTC_IncomeThreshold"
+  )
+  for (app_param in names(renamed_app_params)) {
+    if (!(app_param %in% names(parameters))) {
+      tawa_param <- renamed_app_params[[app_param]]
+      if (tawa_param %in% names(parameters)) {
+        print(sprintf("Copying %s to %s", tawa_param, app_param))
+        parameters[[app_param]] <- parameters[[tawa_param]]
+      } else {
+        error_msg <- sprintf(
+          "Missing parameter, neither app (%s) nor tawa (%s) parameter found ",
+          app_param, tawa_param
+        )
+        stop(error_msg)
+      }
+    }
+  }
+  # Add defaults for any missing system params
+  default_system_params <- parameters_from_df(as.data.frame(PARAMS_TEMPLATE))
+  for (app_param in names(default_system_params)) {
+    if (!(app_param %in% names(parameters))) {
+      print(sprintf("Setting missing parameter %s to the default: %s", app_param, default_system_params[app_param]))
+      parameters[[app_param]] <- default_system_params[[app_param]]
+    }
+  }
+  # Subset to only the required parameters, drop any extras
+  parameters <- parameters[names(default_system_params)]
   return(parameters)
 }
-
 
 parameters_from_df <- function(parameters_df, parameters_column = 2) {
   
@@ -20,16 +60,18 @@ parameters_from_df <- function(parameters_df, parameters_column = 2) {
   Params_text[, 2] <- gsub(";", ",", Params_text[, 2])
   Params_text[, 2] <- gsub("'", "", Params_text[, 2])
   
-  Parameters <- vector(mode="list", length=dim(Params_text)[1])
+  Parameters <- vector(mode = "list", length = dim(Params_text)[1])
   names(Parameters) <- Params_text$Parameter
   
-  for (i in 1:nrow(Params_text)){
-    if (!is.na(suppressWarnings(as.numeric(Params_text[i,2])))){
-      Parameters[[Params_text[i,1]]] <- suppressWarnings(as.numeric(Params_text[i,2]))
-    } else if (grepl("rbind", Params_text[i,2])) {
-      Parameters[[Params_text[i,1]]] <- eval(parse(text = Params_text[i,2]))
+  for (i in 1:nrow(Params_text)) {
+    if (!is.na(suppressWarnings(as.numeric(Params_text[i, 2])))) {
+      Parameters[[Params_text[i, 1]]] <- suppressWarnings(as.numeric(Params_text[i, 2]))
+    } else if (grepl("rbind", Params_text[i, 2])) {
+      # AbatementScale or TaxScale - convert to list with thresholds and rates
+      a_matrix <- eval(parse(text = Params_text[i, 2]))
+      Parameters[[Params_text[i, 1]]] <- list(thresholds = a_matrix[, 1], rates = a_matrix[, 2])
     } else {
-      Parameters[[Params_text[i,1]]] <- Params_text[i,2]
+      Parameters[[Params_text[i, 1]]] <- Params_text[i, 2]
     }
   }
   
@@ -46,6 +88,77 @@ wks_in_year <- function(year) {
     weeks <- 365/7
   }
   return(weeks)
+}
+
+# EMTR - effective marginal tax rate
+get_emtr <- function(net_income, next_net_income, steps_per_dollar) {
+  emtr <- 1 - steps_per_dollar*(next_net_income - net_income)
+  emtr <- zoo::na.locf(emtr)
+  return(emtr)
+}
+
+# RR - Replacement rate
+get_rr <- function(non_working_net_income, working_net_income) {
+  rr <- non_working_net_income / working_net_income
+  return(rr)
+}
+
+# PTR - Participation tax rate
+get_ptr <- function(net_income, gross_income) {
+  ptr <- 1 - (net_income - first(net_income)) / gross_income
+  return(ptr)
+}
+
+# The sum of these columns is the definition of Net_Income
+net_income_components <- c(
+  "net_wage",
+  "net_benefit",
+  "WFF_abated",
+  "MFTC",
+  "IETC_abated",
+  "WinterEnergy",
+  "BestStart_Total",
+  "AS_Amount"
+)
+
+# Calculate EMTR, RR, and PTR; including decompositions of each rate
+calculate_rates <- function(X, net_income_components, steps_per_dollar) {
+  # EMTR, including decomposition
+  X[, EMTR := get_emtr(Net_Income, shift(Net_Income, 1L, type = "lead"), steps_per_dollar)]
+  
+  X[, paste0("EMTR_", net_income_components) := lapply(.SD, function(net_income_component) {
+    emtr_component <- get_emtr(
+      net_income = net_income_component,
+      next_net_income = shift(net_income_component, 1L, type = "lead"),
+      steps_per_dollar
+    ) - 1 # Subtract 1 from components
+    return(emtr_component)
+  }), .SDcols = net_income_components]
+  X[, EMTR_net_wage := EMTR_net_wage + 1] # Add 1 back for the main component
+  
+  # Replacement rate - note not linear in Net_Income,
+  # so for decomposition let's fix the working net income
+  X[, RR := get_rr(first(Net_Income), Net_Income)]
+  
+  X[, paste0("RR_", net_income_components) := lapply(.SD, function(net_income_component) {
+    get_rr(
+      non_working_net_income = first(net_income_component),
+      working_net_income = Net_Income # Keep this fixed when calculating components
+    )
+  }), .SDcols = net_income_components]
+  
+  # Participation tax rate, including decomposition
+  X[, PTR := get_ptr(Net_Income, gross_wage1 + gross_wage2)]
+  
+  X[, paste0("PTR_", net_income_components) := lapply(.SD, function(net_income_component) {
+    get_ptr(
+      net_income = net_income_component,
+      gross_income = gross_wage1 + gross_wage2
+    ) - 1 # Subtract 1 from components
+  }), .SDcols = net_income_components]
+  X[, PTR_net_wage := PTR_net_wage + 1] # Add 1 back for the main component
+  
+  return(X)
 }
 
 emtr <- function(
@@ -125,7 +238,7 @@ emtr <- function(
   # except where the legislation specifies otherwise.
   convert_scale_to_weekly <- function(Scale, wks_in_year = 52L) {
     Scale_Weekly <- Scale
-    Scale_Weekly[, 1] <- Scale_Weekly[, 1] / wks_in_year
+    Scale_Weekly$thresholds <- Scale_Weekly$thresholds / wks_in_year
     return(Scale_Weekly)
   }
   
@@ -171,12 +284,7 @@ emtr <- function(
   MFTC_amount <- Parameters$FamilyAssistance_MFTC_Rates_MinimumIncome / 52L
   
   # Calculate inverse thresholds for the tax system (weekly)
-  NIT <- c(0)
-  for (Row in 2:nrow(Tax_BaseScale_Weekly)){
-    NIT <- c(NIT, tail(NIT, 1) +
-               (Tax_BaseScale_Weekly[Row, 1] - Tax_BaseScale_Weekly[Row - 1, 1]) *
-               (1 - Tax_BaseScale_Weekly[Row - 1, 2]))
-  }
+  NIT <- Net_Thresholds(Tax_BaseScale_Weekly)
   
   # Assign benefit rates and abatement schedules ------------------------
   if (Partnered == TRUE) {
@@ -518,21 +626,27 @@ emtr <- function(
       pmax(gross_wage1 + gross_wage2 - AS_Abate_Point, 0) * 
       Parameters$Accommodation_AbatementRate * ((net_benefit1 + net_benefit2) == 0), 0)]
   
-  # Net income and EMTR
-  X[, Net_Income := net_benefit1 + net_wage1 + net_benefit2 + net_wage2 +
-      IETC_abated1 + IETC_abated2 + FTC_abated + IWTC_abated + MFTC +  
-      WinterEnergy + BestStart_Total + AS_Amount]
+  # Combo columns
+  X[, ":="(
+    net_wage = net_wage1 + net_wage2,
+    net_benefit = net_benefit1 + net_benefit2,
+    benefit_tax = -(gross_benefit1 + gross_benefit2 - net_benefit1 - net_benefit2),
+    gross_wage = gross_wage1 + gross_wage2,
+    wage_tax_and_ACC = -(wage1_tax + wage2_tax + wage1_ACC_levy + wage2_ACC_levy),
+    IETC_abated = IETC_abated1 + IETC_abated2,
+    WFF_abated = FTC_abated + IWTC_abated
+  )]
   
-  X[, EMTR := 1 - steps_per_dollar*(shift(Net_Income,1L,type="lead")-Net_Income)]
-  X[, EMTR := zoo::na.locf(EMTR)]
-  
-  # Replacement rate
-  X[, Replacement_Rate := first(Net_Income) / Net_Income]
-  X[, Participation_Tax_Rate := 1 - (Net_Income - first(Net_Income))/(gross_wage1 + gross_wage2)]
-  
+  # Net income - see definition of `net_income_components`
   # As in TAWA proc the disposable income is calculated as: 
   # P_Income_Total + P_FamilyAssistance_Total + P_TaxCredit_IETC - P_Income_TaxPayable - P_ACC_LevyPayable
   # Same definition as "Net_Income", so use "Net_Income" as disposable income.
+  X[, Net_Income := rowSums(.SD), .SDcols = net_income_components]
+  X[, Net_Income_annual := Net_Income*weeks_in_year]
+  
+  # Calculate EMTRs, RRs, and PTRs; and their decomposition into each
+  # net income component
+  X <- calculate_rates(X, net_income_components, steps_per_dollar)
   
   # Number of children under 14
   LT_14 <- sum(Children_ages < 14)

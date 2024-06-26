@@ -1,6 +1,6 @@
 # Convert TAWA parameter files to IncomeExplorer app parameter files
 TAWA_to_app_param_files <- function(
-  input_param_paths, output_param_dir, output_suffix,
+  input_param_paths, output_param_dir, output_prefix,
   output_template_path = "App_Parameters_Template.xlsx") {
   
   # Rename
@@ -58,7 +58,7 @@ TAWA_to_app_param_files <- function(
       new_parameters[order(I), .(Parameter, Value)],
       startRow = 2, startCol = 2
     )
-    output_path <- file.path(output_param_dir, paste0(output_suffix, basename(old_file)))
+    output_path <- file.path(output_param_dir, paste0(output_prefix, basename(old_file)))
     openxlsx::saveWorkbook(wb_template, output_path, overwrite = TRUE)
   }
 }

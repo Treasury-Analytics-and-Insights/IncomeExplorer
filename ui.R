@@ -8,6 +8,7 @@
 
 suppressMessages({
   library(shiny)
+  library(shinyjs)
   library(shinythemes)
   library(plotly)
   library(rhandsontable)
@@ -20,109 +21,67 @@ DEFAULT_HOURLY_WAGE <- 22.70
 # Define UI
 shinyUI(fluidPage(
   # different themes from shinythemes R package, https://rstudio.github.io/shinythemes/
-  theme = shinytheme("readable"),
+  theme = shinytheme("sandstone"),
+  useShinyjs(),
   # Application title
-  titlePanel(
-    sprintf(
-      "Income Explorer Prototype (version %s)", packageVersion("IncomeExplorer")
-    )
-  ),
-  
+  titlePanel("Income Explorer (version 1.0.0)"),
   # Side menu
   sidebarLayout(
     sidebarPanel(
       width = 4,
-      # Select SQ parameters file
-      fileInput('parameters_SQ', 'Status quo parameters', accept = c('xlsx')),
-      # Select reform parameters file
-      fileInput('parameters_Reform', 'Reform parameters', accept = c('xlsx')),
-      # Download the data used in the app
-      downloadButton("downloadData", "Download Results"),
+      fluidRow(
+        column(
+          12,
+          selectizeInput(
+            "selected_scenarios", "Policy Scenarios",
+            choices = NULL, selected = NULL, multiple = TRUE,
+            options = list(
+              placeholder = "Select policy scenarios...",
+              plugins = list("remove_button")
+            )
+          )
+        )
+      ),
+      fluidRow(
+        column(
+          12, align = "center",
+          fileInputButton(
+            "upload_scenarios_button", buttonLabel = "Add scenarios", icon = icon("plus"),
+            multiple = TRUE, accept = c(".xlsx", ".xls", ".yaml", ".yml"),
+          ),
+          actionButtonLoading(
+            "download_params_button", "Download scenarios", icon = icon("download")
+          ),
+          actionButtonLoading(
+            "download_results_button", "Download Results", icon = icon("download")
+          )
+        )
+      ),
+      
+      hr(style = "border-top: 1px solid #ccc"),
       
       # Input the hourly wage and hours
       fluidRow(
         column(6, numericInput(
-          "wage1_hourly", "Hourly wage ($):",
-          min = 18, max = 100,
-          value = DEFAULT_HOURLY_WAGE, step = .5
-          # pre = "$", sep = ",",
-          # animate = FALSE
+          "wage1_hourly", "Hourly wage ($)",
+          value = DEFAULT_HOURLY_WAGE, step = .1
         )),
-        column(6, numericInput(
-                 "max_hours", "Max hours/week", "50"
-        ))),
-        
-      # Input to allow the user to choose situations of people
-      # stay on benefit, or on WFF or showing the maximum amount
-      # between the two options
-      fluidRow(
-        column(4, selectInput(
-          "WFFBEN_SQ", "SQ: WFF or Benefit",
-          c("Max", "WFF", "Benefit"), selected = "Max"
-        )),
-        column(4, selectInput(
-          "WFFBEN_reform", "Reform: WFF or Benefit",
-          c("Max", "WFF", "Benefit"), selected = "Max"
-        )),
-        column(4, selectInput(
-          "MFTC_WEP_scaling", "WEP:",
-          c("Average week" = 1, "Winter week" = 12/5, "Summer week" = 0),
-          selected = "Average week"
-        ))
+        column(6, numericInput("max_hours", "Max hours/week", "50"))
       ),
+      
       # Input accomodation cost settings
       fluidRow(
-        column(4, numericInput(
-          "AS_Accommodation_Costs", "Weekly accomodation cost ($):",
-          min = 0, max = 1000, value = 450, step = 1, 
-        )),
         column(4, selectInput(
-          "AS_Area", label = "AS Area:",
-          choices = c(1, 2, 3, 4), selected = 2
-        )),
-        column(4, selectInput(
-          "Acc_type", label = "Accomodation type:",
+          "Acc_type", label = "Accommodation type",
           choices = c("Renting", "Mortgage"), selected = "Renting"
-        ))
-      ),
-      # Input the poverty threshold
-      fluidRow(
-        column(4, numericInput(
-          "bhc_median",
-          "BHC equivalised median",
-          "43000"
         )),
-        column(4, numericInput(
-          "ahc_median",
-          "AHC equivalised median",
-          "33100"
+        column(5, numericInput(
+          "AS_Accommodation_Costs", "Weekly housing cost ($)",
+          min = 0, max = 2000, value = 450, step = 5
         )),
-        column(4, numericInput(
-          "pov_thresholds",
-          "Poverty thresholds (fraction of medians)",
-          "0.5",
-          step = 0.1
-        ))
-      ),
-      # Input partner status
-      checkboxInput("Partnered", "Partnered", value = FALSE),
-      # Input parter wage details, note that this is only
-      # displayed if there is a partner
-      fluidRow(
-        column(6, conditionalPanel(
-          condition = "input.Partnered == 1",
-          numericInput(
-            "gross_wage2", "Partner's hourly wage ($):",
-            min = 15, max = 100,
-            value = DEFAULT_HOURLY_WAGE, step = .5
-          )
-        )),
-        column(6, conditionalPanel(
-          condition = "input.Partnered == 1",
-          numericInput(
-            "hours2", "Partner's hours worked:",
-            min = 0, max = 80, value = 0, step = 5
-          )
+        column(3, selectInput(
+          "AS_Area", label = "AS area code",
+          choices = c(1, 2, 3, 4), selected = 2
         ))
       ),
       # Input the children's ages
@@ -131,53 +90,78 @@ shinyUI(fluidPage(
         "Age of children (e.g. '1, 4' or leave blank)",
         "0, 10"
       ),
-      # Check boxes to only display certain payments
-      checkboxGroupInput(
-        "income_types",
-        "Select income types for Income composition plot:",
-        c(
-          "Net Income", "Best Start", "Winter Energy", "Accomodation Supplement",
-          "IWTC", "FTC", "MFTC", "IETC", 
-          "Net Core Benefit", "Net Wage", "Net Wage (Partner)",
-          "Tax on Core Benefit", "Tax on Wage and ACC"
-        ),
-        inline = TRUE,
-        selected = c(
-          "Best Start", "Winter Energy", "Accomodation Supplement",
-          "IWTC", "FTC", "MFTC", "IETC", 
-          "Net Core Benefit", "Net Wage", "Net Wage (Partner)",
-          "Tax on Core Benefit", "Tax on Wage and ACC"
-        )
+      # Input partner status
+      checkboxInput("Partnered", "Partnered", value = FALSE),
+      # Input parter wage details, note that this is only
+      # displayed if there is a partner
+      fluidRow(
+        column(6, hidden(numericInput(
+          "gross_wage2", "Partner's hourly wage ($)",
+          min = 15, max = 100,
+          value = DEFAULT_HOURLY_WAGE, step = .1
+        ))),
+        column(6, hidden(
+          numericInput(
+            "hours2", "Partner's hours worked",
+            min = 0, max = 80, value = 0, step = 5
+          )
+        ))
       )
     ),
     # Main panel containing plots etc.
     mainPanel(
       tabsetPanel(
-        # Plot net income and EMTR
+        tabPanel(
+          "Net Income",
+          br(),
+          plotlyOutput("plot_netincome", height = "500px")
+        ),
         tabPanel(
           "EMTR",
-          h2("Net Income"), plotlyOutput("plot_netincome", height = "300px"),
-          h2("Effective Marginal Tax Rate"), plotlyOutput("plot_emtr", height = "300px"),
-          h2("Replacement Rate"), plotlyOutput("plot_replacement_rate", height = "300px"),
-          h2("Participation Tax Rate"), plotlyOutput("plot_participation_tax_rate", height = "300px")
+          br(),
+          plotlyOutput("plot_emtr", height = "500px")
         ),
-        # Plot poverty
         tabPanel(
-          "Poverty",
-          h2("Equivalised Income"), plotlyOutput("plot_equivincome", height = "300px"),
-          h2("BHC Poverty"), plotlyOutput("plot_bhc_depth", height = "300px"),
-          h2("AHC Poverty"), plotlyOutput("plot_ahc_depth", height = "300px")
+          "RR",
+          br(),
+          plotlyOutput("plot_replacement_rate", height = "500px")
         ),
-        # Plot income composition/budget constraint
         tabPanel(
-          "Income composition",
-          plotlyOutput("plot_incomecomposition_SQ", height = "400px"),
-          plotlyOutput("plot_incomecomposition_Reform", height = "400px")
+          "PTR",
+          br(),
+          plotlyOutput("plot_participation_tax_rate", height = "500px")
         ),
-        # Table containing the parameters that changed
-        tabPanel("Parameters Adjustment", rHandsontableOutput("show_parameters")),
-        # Table containing the parameters that changed
-        tabPanel("Parameters", tableOutput("changed_parameters"))
+        tabPanel(
+          "Income Composition",
+          p(style = "margin-bottom: 0.5em"),
+          uiOutput("income_composition_tabs")
+        ),
+        tabPanel("Policy Changes", tableOutput("changed_parameters")),
+        tabPanel(
+          "About",
+          mainPanel(
+            h2("Overview"),
+            p(
+              "This app is designed to support policy analysts in understanding the relationship between gross income and net income due to the Tax and Welfare policies of New Zealand.",
+              "The app considers a theoretical family, and calculates various measures of work incentives, including net income, effective marginal tax rates (EMTR's), replacement rates (RR's), and participation tax rates (PTR's)."
+            ),
+            h2("Usage"),
+            tags$ul(
+              tags$li("The app is preloaded with policy scenarios from the most recently released Economic & Fiscal Update (EFU) from the New Zealand Treasury. You can select any number of these scenarios by clicking in the 'Select policy scenarios...' selection field and then selecting from the drop-down list that appears."),
+              tags$li("Selected policy scenarios can then be downloaded in Excel format by clicking the 'Download Scenarios' button. These can be edited, and then uploaded back into the app using the 'Add Scenarios' button."),
+              tags$li("The full calculation results can be downloaded in Excel format by clicking the 'Download Results' button."),
+              tags$li("The app allows you to customise the example family by setting parameters relating to their earnings, accommodation costs, number of children, and whether the primary earner has a partner or not and what their partner's earnings are.")
+            ),
+            h2("Disclaimer"),
+            p(
+              "The IncomeExplorer app was developed by the Analytics & Insights team in the New Zealand Treasury's Office of the Chief Economic Adviser.",
+              "It is provided as-is, for research purposes only, with absolutely no warranty or guarantee of correctness.",
+              "The public version of this app should not be used for any sensitive work.",
+              "Please ", a("contact the Analytics & Insights team", href = "mailto:AnalyticsAndInsights@treasury.govt.nz"),
+              " if you require assistance in running the app in a secure environment."
+            )
+          )
+        )
       )
     )
   )

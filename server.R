@@ -5,10 +5,11 @@
 
 suppressMessages({
   library(shiny)
+  library(shinyjs)
   library(openxlsx)
-  library(rhandsontable)
   library(magrittr)
   library(data.table)
+  library(zip)
 })
 
 # Define server logic required to run the app
@@ -23,338 +24,302 @@ shinyServer(function(input, output, session) {
       "This software is provided as-is, for research purposes only, ",
       "with absolutely no warranty or guarantee of correctness."
     ),
+    footer = actionButton("close_warning", "Dismiss"),
     easyClose = FALSE, fade = FALSE
   )
   
   # Show the model on start up ...
   showModal(warning_modal)
   
-  ##########################################
-  # Loading data and calculating incomes 
-  ##########################################
-  
-  WEEKS_IN_YEAR <- 52L
-
-  load_parameters_data <- reactive({
-    show_all_parameters(
-      input$parameters_SQ$datapath,
-      input$parameters_Reform$datapath
-    )
-  })
-  
-  # display changed parameters 
-  output$show_parameters <- renderRHandsontable({
-    DF <- load_parameters_data()
-    rhandsontable(DF, height = 800) %>%
-      hot_cols(
-        colWidths = c(500, 200, 200),
-        fixedColumnsLeft = 1,
-        stretchH = "all"
-      ) %>%
-      hot_table(highlightCol = TRUE, highlightRow = TRUE)
-  })    
-  
-  # Read in the parameters from files
-  reload_data <- reactive({
-    req(input$parameters_SQ, input$parameters_Reform)
-    
-    if(!is.null(input$show_parameters)){
-      DF <- hot_to_r(input$show_parameters)
-      parameters_SQ <- parameters_from_df(DF, parameters_column = 2)
-      parameters_Reform <- parameters_from_df(DF, parameters_column = 3)
+  observeEvent(input$Partnered, {
+    if (input$Partnered) {
+      show("gross_wage2")
+      show("hours2")
     } else {
-      parameters_SQ  <-  parameters_from_file(req(input$parameters_SQ)$datapath)
-      parameters_Reform <- parameters_from_file(req(input$parameters_Reform)$datapath)
+      hide("gross_wage2")
+      hide("hours2")
     }
-    
-    return(list(
-      parameters_SQ = parameters_SQ,
-      parameters_Reform = parameters_Reform
-    ))
   })
   
+  #### Selecting and/or Uploading parameter files ####
+  # Get default parameter files for scenarios
+  default_files <- list.files(
+    path = "inst/parameters", pattern = glob2rx("*.yaml"), full.names = TRUE
+  )
+  default_files_names <- basename(default_files) %>% tools::file_path_sans_ext()
+  names(default_files) <- default_files_names
   
-  # calculate incomes 
-  calculate_income <- reactive({
-    parameters = req(reload_data())
+  # Store scenario files in a reactive variable
+  all_scenarios <- reactiveValues(names = default_files_names, paths = default_files)
+  loaded_scenarios <- reactiveValues(names = list(), params = list(), incomes = list())
+  
+  # When the warning dialog is closed, update the selection to add
+  # default scenarios as choices - this is a workaround for a shinylive issue
+  # because with normal R shiny the observeEvent after this one updates it for us
+  observeEvent(input$close_warning, {
+    updateSelectizeInput(
+      session, "selected_scenarios",
+      choices = all_scenarios$names, selected = NULL
+    )
+    removeModal()
+  })
+  
+  # Add a scenario to the list when a new scenario file is uploaded
+  observeEvent(input$upload_scenarios_button, {
+    new_scenarios <- req(input$upload_scenarios_button)
+    new_scenario_names <- new_scenarios$name %>% tools::file_path_sans_ext()
+    overlapping_names <- intersect(new_scenario_names, all_scenarios$names)
+    for (overlapping_name in overlapping_names) {
+      # Avoid using any existing names
+      new_scenario_names[new_scenario_names == overlapping_name] <-
+        paste0("Uploaded_", overlapping_name)
+    }
+    new_scenario_files <- as.list(new_scenarios$datapath)
+    names(new_scenario_files) <- new_scenario_names
     
-    # convert inputs
-    MAX_WAGE <- input$max_hours*input$wage1_hourly
-    children <- convert_ages(input$Children_ages)
+    all_scenarios$names <- c(new_scenario_names, all_scenarios$names)
+    all_scenarios$paths <- c(new_scenario_files, all_scenarios$paths)
     
-    if (input$Acc_type == "Renting"){
-      AS_Accommodation_Rent <- TRUE
+    # Add the new scenarios to the current selection
+    new_selection <- c(input$selected_scenarios, new_scenario_names)
+    updateSelectizeInput(
+      session, "selected_scenarios",
+      choices = all_scenarios$names, selected = new_selection
+    )
+  })
+  
+  #######################################################
+  # Loading parameters from files and calculating incomes
+  #######################################################
+  
+  # Check for newly selected scenarios, and load them
+  # Note that incomes are loaded as "reactive" values,
+  # and will be recalculated if family parameters are changed
+  observe({
+    if (length(loaded_scenarios$params) > 0) {
+      loaded_scenarios_names <- names(loaded_scenarios$params)
     } else {
-      AS_Accommodation_Rent <- FALSE
+      loaded_scenarios_names <- c()
     }
-    
-    if (input$Partnered == 1){
-      partner_wages <- input$gross_wage2*input$hours2
-      partner_hours <- input$hours2
+    newly_selected_scenarios <- setdiff(input$selected_scenarios, loaded_scenarios_names)
+    if (length(newly_selected_scenarios) > 0) {
+      lapply(newly_selected_scenarios, function(newly_selected_scenario) {
+        new_params <- parameters_from_file(all_scenarios$paths[[newly_selected_scenario]])
+        new_income <- reactive({get_scenario_income(new_params)})
+        loaded_scenarios$params[[newly_selected_scenario]] <- new_params
+        loaded_scenarios$incomes[[newly_selected_scenario]] <- new_income
+      })
+    }
+    # Check for any loaded scenarios that are un-selected, and delete them
+    unselected_scenarios <- setdiff(loaded_scenarios_names, input$selected_scenarios)
+    if (length(unselected_scenarios) > 0) {
+      loaded_scenarios$params[unselected_scenarios] <- NULL
+      loaded_scenarios$incomes[unselected_scenarios] <- NULL
+    }
+    # Set loaded order based on selection order
+    loaded_scenarios$names <- input$selected_scenarios
+  })
+  
+  get_scenario_income <- function(params) {
+    scenario_income <- calculate_income(
+      # System parameters
+      params,
+      # Family parameters
+      max_hours = input$max_hours,
+      hourly_wage = input$wage1_hourly,
+      children_ages = input$Children_ages,
+      # Partner parameters
+      partnered = input$Partnered,
+      partner_wages = input$gross_wage2,
+      partner_hours = input$hours2,
+      # Accommodation parameters
+      accommodation_type = input$Acc_type,
+      as_accommodation_costs = input$AS_Accommodation_Costs,
+      as_area = as.numeric(input$AS_Area),
+      # Presentation parameters
+      steps_per_dollar = 1L,
+      weeks_in_year = 52L
+    )
+    return(scenario_income)
+  }
+  
+  #### Join incomes together as one data.table ####
+  get_scenario_incomes <- reactive({
+    req(loaded_scenarios$incomes)
+    # Index into the loaded incomes using the selection order rather than loaded order
+    loaded_scenario_incomes <- loaded_scenarios$incomes[loaded_scenarios$names]
+    scenario_incomes_list <- lapply(loaded_scenario_incomes, function(x) x())
+    scenario_incomes <- rbindlist(scenario_incomes_list, idcol = "Scenario")
+    return(scenario_incomes)
+  })
+  
+  # An empty placeholder plot for when no scenarios are selected
+  # This is for shinylive which needs empty plots otherwise it errors
+  empty_plot <- plot_ly(type = "scatter", mode = "none") %>% layout(
+    xaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE),
+    yaxis = list(showgrid = FALSE, zeroline = FALSE, showticklabels = FALSE)
+  )
+  
+  #### Net Income plot ####
+  output$plot_netincome <- renderPlotly({
+    X_results <- req(get_scenario_incomes())
+    if (nrow(X_results) > 0) {
+      output_plot <- plot_net_income(X_results)
     } else {
-      partner_wages <- 0
-      partner_hours <- 0
+      output_plot <- empty_plot
     }
-    
-    # Create helper emtr function using current inputs
-    hot_emtr <- function(params) {
-      emtr_df <- emtr(
-        # System parameters
-        params,
-        # Family parameters
-        input$Partnered, input$wage1_hourly, children, partner_wages, partner_hours,
-        input$AS_Accommodation_Costs, AS_Accommodation_Rent, as.numeric(input$AS_Area),
-        pov_thresholds = input$pov_thresholds,bhc_median = input$bhc_median,
-        ahc_median = input$ahc_median,
-        # Presentation parameters
-        max_wage = MAX_WAGE, steps_per_dollar = 1L, weeks_in_year = WEEKS_IN_YEAR, 
-        MFTC_WEP_scaling = as.numeric(input$MFTC_WEP_scaling)
-      )
-      return(emtr_df)
-    }
-    
-    X_SQ <- hot_emtr(parameters$parameters_SQ)
-    X_Reform <- hot_emtr(parameters$parameters_Reform)
-    
-
-    
-    # MFTC is meant to make families always better off being off-benefit than staying
-    # on a benefit. We let the user set whether the family stays on benefit
-    # or gets IWTC when they work, with the parameter input$WFFBEN_SQ. This can be:
-    # "Max" - choose the option which maximises the family income.
-    # "WFF" - go off the benefit while working, and get IWTC + MFTC.
-    # "Benefit" - stay on the benefit while working, and never get IWTC or MFTC
-    #             (benefit abates away as earned income increases).
-    # Note that these are only applicable when beneficiaries are ineligible for IWTC;
-    # MFTC eligibility currently depends on IWTC eligibility in the `emtr` function.
-    
-    if (input$WFFBEN_SQ != "WFF") {
-      SQ_params_with_no_IWTC <- remove_IWTC_from_params(parameters$parameters_SQ)
-      X_SQ_without_IWTC <- hot_emtr(SQ_params_with_no_IWTC)
-      
-      if (input$WFFBEN_SQ == "Max") {
-        # Choose which of benefit or IWTC gives max net income
-        X_SQ <- choose_IWTC_or_benefit(X_SQ, X_SQ_without_IWTC)
-        
-      } else if (input$WFFBEN_SQ == "Benefit") {
-        X_SQ <- X_SQ_without_IWTC
-      }
-    }
-    
-    if (input$WFFBEN_reform != "WFF") {
-      Reform_params_with_no_IWTC <- remove_IWTC_from_params(parameters$parameters_Reform)
-      X_Reform_without_IWTC <- hot_emtr(Reform_params_with_no_IWTC)
-      
-      if (input$WFFBEN_reform == "Max") {
-        # Choose which of benefit or IWTC gives max net income
-        X_Reform <- choose_IWTC_or_benefit(X_Reform, X_Reform_without_IWTC)
-        
-      }  else if (input$WFFBEN_reform == "Benefit") {
-        X_Reform <- X_Reform_without_IWTC
-      }
-    }
-    
-    # used to ensure that SQ and reform plots have the same axes
-    max_income <- max(
-      max(X_SQ$gross_wage1_annual),
-      max(X_Reform$gross_wage1_annual)
-    )
-    
-    max_net_income <- 1.1*WEEKS_IN_YEAR*max(
-      max(X_SQ$Net_Income), max(X_Reform$Net_Income)
-    )
-    min_y_SQ <- X_SQ[, WEEKS_IN_YEAR*min(
-      -(
-        gross_benefit1 + gross_benefit2 - net_benefit1 - net_benefit2 +
-          wage1_tax + wage2_tax + wage1_ACC_levy + wage2_ACC_levy
-      )
-    )]
-    min_y_Reform <- X_Reform[, WEEKS_IN_YEAR*min(
-      -(
-        gross_benefit1 + gross_benefit2 - net_benefit1 - net_benefit2 +
-          wage1_tax + wage2_tax + wage1_ACC_levy + wage2_ACC_levy
-      )
-    )]
-    min_y <- 1.1*min(min_y_SQ, min_y_Reform) 
-    
-    return(list(
-      X_SQ = X_SQ, 
-      X_Reform = X_Reform, 
-      max_income = max_income,
-      max_net_income = max_net_income, 
-      min_y = min_y
-    ))
+    return(output_plot)
   })
   
-  ########################################## 
-  ### EMTR Tab
-  ########################################## 
-  
-  # net income plots
-  output$plot_netincome<- renderPlotly({
-    X_results <- req(calculate_income())
-    
-    X_SQ <- X_results$X_SQ
-    X_Reform <- X_results$X_Reform
-    
-    compare_net_income_plot(X_SQ, X_Reform, inc_limit = X_results$max_income,
-                            title = "Net income comparison", policy_name1 = 'Status Quo',
-                            policy_name2 = 'Reform', watermark = FALSE, weeks_in_year = WEEKS_IN_YEAR
-    )
+  #### EMTR plot ####
+  output$plot_emtr <- renderPlotly({
+    X_results <- req(get_scenario_incomes())
+    if (nrow(X_results) > 0) {
+      output_plot <- plot_rates(X_results, "EMTR", "Effective Marginal Tax Rate")
+    } else {
+      output_plot <- empty_plot
+    }
+    return(output_plot)
   })
   
-  # emtr plots
-  output$plot_emtr<- renderPlotly({
-    X_results <- req(calculate_income())
-    
-    X_SQ <- X_results$X_SQ
-    X_Reform <- X_results$X_Reform
-    
-    compare_plots(X_SQ, X_Reform, type = "EMTR", min_rate = 0, max_rate = 1.1,
-      inc_limit = X_results$max_income, title = "EMTR comparison",
-      policy_name1 = 'Status Quo', policy_name2 = 'Reform',
-      watermark = FALSE, weeks_in_year = WEEKS_IN_YEAR
-    )
-  })
-  
-  # replacement rate plot
+  #### RR plot ####
   output$plot_replacement_rate <- renderPlotly({
-    X_results <- req(calculate_income())
-    
-    X_SQ <- X_results$X_SQ
-    X_Reform <- X_results$X_Reform
-    
-    compare_plots(X_SQ, X_Reform, type = "RR", min_rate = 0, max_rate = 1.1,
-      inc_limit = X_results$max_income, title = "Replacement Rate comparison",
-      policy_name1 = 'Status Quo', policy_name2 = 'Reform', watermark = FALSE,  
-      weeks_in_year = WEEKS_IN_YEAR
-    )
-  })
-  
-  # participation tax rate plot
-  output$plot_participation_tax_rate <- renderPlotly({
-    X_results <- req(calculate_income())
-    
-    X_SQ <- X_results$X_SQ
-    X_Reform <- X_results$X_Reform
-    
-    compare_plots(X_SQ, X_Reform, type = "PTR", min_rate = 0, max_rate = 1.1,
-      inc_limit = X_results$max_income, title = "Participation Tax Rate comparison",
-      policy_name1 = 'Status Quo', policy_name2 = 'Reform',
-      watermark = FALSE, weeks_in_year = WEEKS_IN_YEAR
-    )
-  })
-  
-  ########################################## 
-  ### Poverty impact Tab
-  ########################################## 
-  
-  # equivalised income plots
-  output$plot_equivincome<- renderPlotly({
-    X_results <- req(calculate_income())
-    
-    X_SQ <- X_results$X_SQ
-    X_Reform <- X_results$X_Reform
-    
-    compare_equiv_income_plot(X_SQ, X_Reform, inc_limit = X_results$max_income,
-                            title = "Equivalised income comparison", policy_name1 = 'Status Quo',
-                            policy_name2 = 'Reform', watermark = FALSE, weeks_in_year = WEEKS_IN_YEAR
-    )
-  })
-  
-  # BHC poverty depth plots
-  output$plot_bhc_depth<- renderPlotly({
-    X_results <- req(calculate_income())
-    
-    X_SQ <- X_results$X_SQ
-    X_Reform <- X_results$X_Reform
-    
-    poverty_depth_plot(X_SQ, X_Reform, inc_limit = X_results$max_income,
-                       policy_name1 = 'Status Quo',
-                       policy_name2 = 'Reform', watermark = FALSE, weeks_in_year = WEEKS_IN_YEAR,
-                       type = "BHC"
-    )
-  })
-  
-  # AHC poverty depth plots
-  
-  output$plot_ahc_depth<- renderPlotly({
-    X_results <- req(calculate_income())
-    
-    X_SQ <- X_results$X_SQ
-    X_Reform <- X_results$X_Reform
-    
-    poverty_depth_plot(X_SQ, X_Reform, inc_limit = X_results$max_income,
-                       policy_name1 = 'Status Quo',
-                       policy_name2 = 'Reform', watermark = FALSE, weeks_in_year = WEEKS_IN_YEAR,
-                       type = "AHC"
-    )
-  })
-  
-  ########################################## 
-  ### Income compostion tab
-  ########################################## 
-  
-  # income composition plots
-  output$plot_incomecomposition_SQ<- renderPlotly({
-    X_results <- req(calculate_income())
-    X_SQ <- X_results$X_SQ
-    amounts_net_plot(
-      X_SQ,
-      inc_limit = X_results$max_income,
-      y_min = X_results$min_y,
-      y_max = X_results$max_net_income,
-      display_cols = input$income_types
-    )
-  })
-  
-  output$plot_incomecomposition_Reform <- renderPlotly({
-    X_results <- req(calculate_income())
-    X_Reform <- X_results$X_Reform
-    amounts_net_plot(
-      X_Reform,
-      inc_limit = X_results$max_income,
-      y_min = X_results$min_y,
-      y_max = X_results$max_net_income,
-      display_cols = input$income_types
-    )
-  })
-  
-  ########################################## 
-  ### Parameters tab
-  ##########################################  
-  
-  # display changed parameters 
-  output$changed_parameters <- renderTable({
-    parameters = reload_data()
-    if (is.null(input$parameters_SQ) | is.null(input$parameters_Reform)) {
-      return()
+    X_results <- req(get_scenario_incomes())
+    if (nrow(X_results) > 0) {
+      output_plot <- plot_rates(X_results, "RR", "Replacement Rate")
+    } else {
+      output_plot <- empty_plot
     }
-
-    check_for_changed_parameters(
-      parameters$parameters_SQ, parameters$parameters_Reform
-    )
+    return(output_plot)
   })
   
-  ########################################## 
-  ### Outputs
-  ##########################################
+  #### PTR plot ####
+  output$plot_participation_tax_rate <- renderPlotly({
+    X_results <- req(get_scenario_incomes())
+    if (nrow(X_results) > 0) {
+      output_plot <- plot_rates(X_results, "PTR", "Participation Tax Rate")
+    } else {
+      output_plot <- empty_plot
+    }
+    return(output_plot)
+  })
   
-  # Download everything 
-  output$downloadData <- downloadHandler(
-    filename = function() {
-      "IncomeExplorerResults.xlsx"
-    },
-    content = function(file) {
-      X_results <- calculate_income()
-      parameters = reload_data()
+  #### Income composition plots ####
+  selected_income_composition_tab <- reactiveValues(tab = NULL)
+  
+  # Render a tab for each scenario
+  output$income_composition_tabs <- renderUI({
+    do.call(tabsetPanel, c(
+      id = "income_composition_tabs",
+      lapply(input$selected_scenarios, function(scenario) {
+        tabPanel(
+          scenario,
+          plotlyOutput(paste0("plot_income_composition_", scenario), height = "500px")
+        )
+      }),
+      selected = selected_income_composition_tab$tab, type = "pills"
+    ))
+  })
+  
+  # When the input selection changes, update the plot for each scenario
+  observeEvent(input$selected_scenarios, {
+    lapply(input$selected_scenarios, function(scenario) {
+      plot_id <- paste0("plot_income_composition_", scenario)
+      output[[plot_id]] <- renderPlotly({
+        X_results <- req(get_scenario_incomes())
+        if (nrow(X_results) > 0) {
+          y_min <- 52*min(X_results[, wage_tax_and_ACC + benefit_tax])
+          y_max <- 52*max(X_results[, Net_Income])
+          output_plot <- plot_income_composition(
+            X_results[Scenario == scenario], y_min = y_min, y_max = y_max
+          )
+        } else {
+          output_plot <- empty_plot
+        }
+        return(output_plot)
+      })
+    })
+    # Remember which tab we were on
+    if (!is.null(input$income_composition_tabs)) {
+      if (input$income_composition_tabs %in% input$selected_scenarios) {
+        # Keep tab we are on since it is still in the selected scenarios
+        currently_selected_tab <- input$income_composition_tabs
+        selected_income_composition_tab$tab <- currently_selected_tab
+      } else if (length(input$selected_scenarios) > 0) {
+        # The tab we were on has been deleted, change to the last selected scenario
+        num_scenarios <- length(input$selected_scenarios)
+        last_selected_scenario <- input$selected_scenarios[num_scenarios]
+        selected_income_composition_tab$tab <- last_selected_scenario
+      }
+    }
+  })
+  
+  #### Display changed parameters ####
+  output$changed_parameters <- renderTable({
+    # Index into loaded params using the saved selection order
+    params <- req(loaded_scenarios$params[loaded_scenarios$names])
+    get_parameter_changes(params)
+  })
+  
+  #### Download buttons ####
+  
+  # Enable download buttons only when a selection exists
+  observe({
+    if (length(input$selected_scenarios) > 0) {
+      enable("download_params_button")
+      enable("download_results_button")
+    } else {
+      disable("download_params_button")
+      disable("download_results_button")
+    }
+  })
+  
+  # Download scenario parameters
+  observeEvent(input$download_params_button, {
+    params <- req(loaded_scenarios$params)
+    param_names <- names(params)
+    param_paths <- all_scenarios$paths[param_names]
+    if (length(param_paths) == 0) {
+      disable(input$download_params_button)
+    } else {
+      # Create new excel files from the loaded parameters
+      temp_directory <- file.path(tempdir(), as.integer(Sys.time()))
+      dir.create(temp_directory)
+      output_paths <- file.path(temp_directory, paste0(param_names, ".xlsx"))
+      names(output_paths) <- param_names
+      for (param_name in param_names) {
+        save_excel_params(params[[param_name]], output_paths[[param_name]])
+      }
+      if (length(param_names) == 1) {
+        server_file_path <- output_paths[1]
+        output_name <- basename(output_paths[1])
+      } else {
+        server_file_path <- file.path(temp_directory, "Scenarios.zip")
+        zip::zip(zipfile = server_file_path, files = dir(temp_directory), root = temp_directory)
+        output_name <- "Scenarios.zip"
+      }
+      js_download_file <- get_js_download_file(
+        server_file_path = server_file_path, download_file_name = output_name
+      )
+      runjs(js_download_file)
       
-      wb <- createWorkbook()
-      
+      updateActionButton(session, "download_params_button", icon = icon("download"))
+      enable("download_params_button")
+    }
+  })
+  
+  # Download scenario results
+  observeEvent(input$download_results_button, {
+    params <- req(loaded_scenarios$params)
+    if (length(params) == 0) {
+      disable(input$download_results_button)
+    } else {
+      output_path <- "IncomeExplorerResults.xlsx"
+      scenario_incomes <- req(get_scenario_incomes())
+      parameter_differences <- get_parameter_changes(params)
+
       # Details of the example family and input files
       details <- c(
-        SQ_file = input$parameters_SQ$name,
-        Reform_file = input$parameters_Reform$name,
         HourlyWage = input$wage1_hourl,
         Partnered = input$Partnered,
         Partner_HourlyWage = input$gross_wage2*(input$Partnered == 1),
@@ -365,24 +330,17 @@ shinyServer(function(input, output, session) {
         Children_Ages = input$Children_ages
       )
       
-      addWorksheet(wb, 'Details')
-      writeData(wb, 'Details', names(details), startCol=1)
-      writeData(wb, 'Details', details, startCol=2)
-      
-      # Parameters that changed
-      parameter_differences <- check_for_changed_parameters(
-        parameters$parameters_SQ, parameters$parameters_Reform
+      save_app_results(
+        details, parameter_differences, scenario_incomes, output_path
       )
-      addWorksheet(wb, 'Scenario Differences')
-      writeData(wb, 'Scenario Differences', parameter_differences)
+
+      js_download_file <- get_js_download_file(
+        server_file_path = output_path, download_file_name = output_path
+      )
+      runjs(js_download_file)
       
-      # Full sets of results (should probably be more selective)
-      addWorksheet(wb, 'SQ')
-      writeData(wb, 'SQ', X_results$X_SQ)
-      addWorksheet(wb, 'Reform')
-      writeData(wb, 'Reform', X_results$X_Reform)
-      
-      saveWorkbook(wb, file, overwrite = TRUE)
+      updateActionButton(session, "download_results_button", icon = icon("download"))
+      enable("download_results_button")
     }
-  )
+  })
 })
