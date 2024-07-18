@@ -100,6 +100,43 @@ shinyServer(function(input, output, session) {
   # Add a scenario to the list when a new scenario file is uploaded
   observeEvent(input$upload_scenarios_button, {
     new_scenarios <- req(input$upload_scenarios_button)
+    
+    # Validate uploaded files
+    valid_scenarios <- rep(0, length(new_scenarios$name))
+    for (ii in seq_along(new_scenarios$name)) {
+      new_scenario_path <- new_scenarios$datapath[ii]
+      params <- tryCatch(
+        expr = {
+          parameters_from_file(new_scenario_path)
+        },
+        error = function(e) {
+          return(NULL)
+        }
+      )
+      if (is.null(params)) {
+        warning("Invalid parameters uploaded:", new_scenarios$name[ii])
+      } else {
+        valid_scenarios[ii] <- TRUE
+      }
+    }
+    
+    # Warn about any invalid scenarios
+    if (length(valid_scenarios[valid_scenarios == FALSE]) > 0) {
+      invalid_upload_modal <- modalDialog(
+        title = "Invalid scenario files",
+        sprintf(
+          "These uploaded scenario files are invalid and have been ignored: \n%s",
+          paste(new_scenarios$name[valid_scenarios == FALSE], collapse = ", ")
+        ),
+        footer = modalButton("Dismiss"),
+        easyClose = FALSE, fade = FALSE
+      )
+      showModal(invalid_upload_modal)
+    }
+    
+    # Subset to valid scenarios
+    new_scenarios <- lapply(new_scenarios, function(x) x[valid_scenarios == TRUE])
+    
     new_scenario_names <- new_scenarios$name %>% tools::file_path_sans_ext()
     overlapping_names <- intersect(new_scenario_names, all_scenarios$names)
     for (overlapping_name in overlapping_names) {
