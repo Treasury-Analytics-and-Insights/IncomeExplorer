@@ -72,7 +72,7 @@ FamilyAssistance_IWTC_PhaseIn_Single:
 FamilyAssistance_IWTC_PhaseIn_Couple:
   thresholds: 0.0
   rates: 0.0
-FamilyAssistance_MFTC_Rates_MinimumIncome: 34216.0
+FamilyAssistance_MFTC_Rates_MinimumIncome: 35316.0
 FamilyAssistance_BestStart_Abatement_AbatementScale:
   thresholds:
   - 0.0
