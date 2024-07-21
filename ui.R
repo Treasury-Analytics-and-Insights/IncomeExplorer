@@ -64,8 +64,7 @@ shinyUI(fluidPage(
       fluidRow(
         column(6, numericInput(
           "wage1_hourly", "Hourly wage ($)",
-          value = DEFAULT_HOURLY_WAGE, step = .1,
-          min = 15, max = 100
+          value = DEFAULT_HOURLY_WAGE, step = 0.1, min = 0.1
         )),
         column(6, numericInput("max_hours", "Max hours/week", "50", step = 1, min = 1))
       ),
