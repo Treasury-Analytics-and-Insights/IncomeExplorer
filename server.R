@@ -6,6 +6,7 @@
 suppressMessages({
   library(shiny)
   library(shinyjs)
+  library(shinyvalidate)
   library(openxlsx)
   library(magrittr)
   library(data.table)
@@ -41,6 +42,38 @@ shinyServer(function(input, output, session) {
     }
   })
   
+  # Input validation
+  iv <- InputValidator$new()
+  iv$add_rule("wage1_hourly", sv_gt(0))
+  iv$add_rule("max_hours", sv_gt(0))
+  iv$add_rule("AS_Accommodation_Costs", sv_gte(0))
+  iv$add_rule("gross_wage2", sv_gte(0))
+  iv$add_rule("hours2", sv_gte(0))
+  
+  # Regex for validating children's ages input:
+  # ^: start
+  # (\\s*([0-9]|1[0-7]): match 0-17 with optional leading space,
+  # (\\s*,\\s*([0-9]|1[0-7]))*: repeat for multiple ages
+  # (,\\s*)?: optional trailing comma
+  # $: end
+  # - Allows ages 0-17 (inclusive)
+  # - Accepts multiple ages separated by commas
+  # - Permits optional whitespace around numbers and commas
+  # - Allows a trailing comma with optional whitespace
+  # - Accepts blank input
+  # - Rejects non-numeric input and ages 18+
+  children_ages_regex <-
+    "^(\\s*([0-9]|1[0-7])(\\s*,\\s*([0-9]|1[0-7]))*\\s*(,\\s*)?)?$"
+  iv$add_rule(
+    "Children_ages",
+    sv_regex(
+      pattern = children_ages_regex,
+      message = "Children must be aged between 0 and 17"
+    )
+  )
+  
+  iv$enable()
+  
   #### Selecting and/or Uploading parameter files ####
   # Get default parameter files for scenarios
   default_files <- list.files(
@@ -67,6 +100,43 @@ shinyServer(function(input, output, session) {
   # Add a scenario to the list when a new scenario file is uploaded
   observeEvent(input$upload_scenarios_button, {
     new_scenarios <- req(input$upload_scenarios_button)
+    
+    # Validate uploaded files
+    valid_scenarios <- rep(0, length(new_scenarios$name))
+    for (ii in seq_along(new_scenarios$name)) {
+      new_scenario_path <- new_scenarios$datapath[ii]
+      params <- tryCatch(
+        expr = {
+          parameters_from_file(new_scenario_path)
+        },
+        error = function(e) {
+          return(NULL)
+        }
+      )
+      if (is.null(params)) {
+        warning("Invalid parameters uploaded:", new_scenarios$name[ii])
+      } else {
+        valid_scenarios[ii] <- TRUE
+      }
+    }
+    
+    # Warn about any invalid scenarios
+    if (length(valid_scenarios[valid_scenarios == FALSE]) > 0) {
+      invalid_upload_modal <- modalDialog(
+        title = "Invalid scenario files",
+        sprintf(
+          "These uploaded scenario files are invalid and have been ignored: \n%s",
+          paste(new_scenarios$name[valid_scenarios == FALSE], collapse = ", ")
+        ),
+        footer = modalButton("Dismiss"),
+        easyClose = FALSE, fade = FALSE
+      )
+      showModal(invalid_upload_modal)
+    }
+    
+    # Subset to valid scenarios
+    new_scenarios <- lapply(new_scenarios, function(x) x[valid_scenarios == TRUE])
+    
     new_scenario_names <- new_scenarios$name %>% tools::file_path_sans_ext()
     overlapping_names <- intersect(new_scenario_names, all_scenarios$names)
     for (overlapping_name in overlapping_names) {
@@ -96,6 +166,7 @@ shinyServer(function(input, output, session) {
   # Note that incomes are loaded as "reactive" values,
   # and will be recalculated if family parameters are changed
   observe({
+    req(iv$is_valid())
     if (length(loaded_scenarios$params) > 0) {
       loaded_scenarios_names <- names(loaded_scenarios$params)
     } else {
@@ -146,6 +217,7 @@ shinyServer(function(input, output, session) {
   #### Join incomes together as one data.table ####
   get_scenario_incomes <- reactive({
     req(loaded_scenarios$incomes)
+    req(iv$is_valid())
     # Index into the loaded incomes using the selection order rather than loaded order
     loaded_scenario_incomes <- loaded_scenarios$incomes[loaded_scenarios$names]
     scenario_incomes_list <- lapply(loaded_scenario_incomes, function(x) x())

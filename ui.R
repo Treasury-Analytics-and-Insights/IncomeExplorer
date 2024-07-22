@@ -15,8 +15,8 @@ suppressMessages({
   library(data.table)
 })
 
-# TY24 minimum wage
-DEFAULT_HOURLY_WAGE <- 22.70
+# TY25 minimum wage
+DEFAULT_HOURLY_WAGE <- 23.15
 
 # Define UI
 shinyUI(fluidPage(
@@ -64,9 +64,9 @@ shinyUI(fluidPage(
       fluidRow(
         column(6, numericInput(
           "wage1_hourly", "Hourly wage ($)",
-          value = DEFAULT_HOURLY_WAGE, step = .1
+          value = DEFAULT_HOURLY_WAGE, step = 0.1, min = 0.1
         )),
-        column(6, numericInput("max_hours", "Max hours/week", "50"))
+        column(6, numericInput("max_hours", "Max hours/week", "50", step = 1, min = 1))
       ),
       
       # Input accomodation cost settings

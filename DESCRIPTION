@@ -20,6 +20,7 @@ Depends:
 Imports:
     shiny (>= 1.6.0),
     shinythemes,
+    shinyvalidate,
     data.table (>= 1.12.8),
     magrittr,
     stringr,
