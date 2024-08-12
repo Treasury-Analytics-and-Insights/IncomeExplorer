@@ -20,12 +20,11 @@ shinyServer(function(input, output, session) {
   ##########################################
   # the modal dialog where the user can enter the query details.
   warning_modal <- modalDialog(
-    title = "Warning", 
+    title = "Disclaimer", 
     paste0(
-      "This software is provided as-is, for research purposes only, ",
-      "with absolutely no warranty or guarantee of correctness."
+      "This app analyses the effect of New Zealand's tax and welfare system on an example family's net income and work incentives. The app is provided as-is and for research purposes only. Despite reasonable measures taken to ensure quality and accuracy, the Treasury makes no warranty, or guarantee, express or implied, nor assumes any legal liability or responsibility for the accuracy, correctness, completeness or use of any information that is provided through the app."
     ),
-    footer = actionButton("close_warning", "Dismiss"),
+    footer = actionButton("close_warning", "Acknowledge"),
     easyClose = FALSE, fade = FALSE
   )
   
