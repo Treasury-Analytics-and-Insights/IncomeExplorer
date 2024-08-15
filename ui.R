@@ -144,6 +144,7 @@ shinyUI(fluidPage(
     mainPanel(
       style = "padding: 20px 0 0 0;",
       tabsetPanel(
+        id = "resultsTabset",
         tabPanel(
           "About",
           mainPanel(
