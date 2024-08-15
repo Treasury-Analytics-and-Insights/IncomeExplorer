@@ -24,7 +24,7 @@ fileInputButton <- function(
   if (!is.null(capture)) {
     inputTag$attribs$capture <- capture
   }
-  tags$label(span(class = "btn btn-default", list(icon, buttonLabel), inputTag))
+  tags$label(style = "margin-bottom:0", span(class = "btn btn-default", list(icon, buttonLabel), inputTag))
 }
 
 actionButtonLoading <- function(inputId, label, icon = NULL, ...) {

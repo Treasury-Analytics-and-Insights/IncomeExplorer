@@ -1,5 +1,5 @@
 #
-# This is the user-interface definition of the Income Explorer Shiny web application. You can
+# This is the user-interface definition of the IncomeExplorer Shiny web application. You can
 # run the application by clicking 'Run App' above.
 #
 ###############################
@@ -22,12 +22,30 @@ shinyUI(fluidPage(
   # different themes from shinythemes R package, https://rstudio.github.io/shinythemes/
   theme = shinytheme("sandstone"),
   useShinyjs(),
-  # Application title
-  titlePanel("Income Explorer"),
+  tags$head(tags$style(HTML(
+    "a {color:#000000} a:hover, a:focus {color:#707070} .btn {margin-bottom:5px}"
+  ))),
   # Side menu
   sidebarLayout(
     sidebarPanel(
       width = 4,
+      # Application title
+      titlePanel(
+        title = div(
+          style = "margin-top:-25px",
+          div(
+            style = "float:left; padding:0 10px 8px 0;",
+            a(
+              target = "_blank",
+              href = "https://www.treasury.govt.nz/",
+              img(style = "display:block", src = "logo.svg", height = "30px")
+            )
+          ),
+          div(style = "float:left; padding:0 0 10px 0", "IncomeExplorer")
+        ),
+        windowTitle = "IncomeExplorer"
+      ),
+      br(style = "clear:both"),
       fluidRow(
         column(
           12,
@@ -57,7 +75,7 @@ shinyUI(fluidPage(
         )
       ),
       
-      hr(style = "border-top: 1px solid #ccc"),
+      br(),
       
       # Input the hourly wage and hours
       fluidRow(
@@ -105,11 +123,32 @@ shinyUI(fluidPage(
             min = 0, max = 80, value = 0, step = 5
           )
         ))
+      ),
+      
+      fluidRow(
+        style = "text-align:center",
+        a("Source", target = "_blank", href = "https://github.com/Treasury-Analytics-and-Insights/IncomeExplorer"),
+        " | ",
+        a("License", target = "_blank", href = "https://github.com/Treasury-Analytics-and-Insights/IncomeExplorer/blob/master/LICENSE.md"),
+        " | ",
+        a("The Treasury", target = "_blank", href = "https://www.treasury.govt.nz/"),
+        " | ",
+        a("www.govt.nz", target = "_blank", href = "https://www.govt.nz/"),
+        br(),
+        span(
+          style = "font-variant:small-caps; font-size:14px;",
+          a(
+            "© 2024 ", strong("Analytics"), em("&"), strong("Insights"),
+            target = "_blank", href = "https://github.com/Treasury-Analytics-and-Insights/"
+          )
+        )
       )
     ),
     # Main panel containing plots etc.
     mainPanel(
+      style = "padding: 20px 0 0 0;",
       tabsetPanel(
+        id = "resultsTabset",
         tabPanel(
           "About",
           mainPanel(

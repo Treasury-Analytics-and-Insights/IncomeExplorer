@@ -179,6 +179,10 @@ shinyServer(function(input, output, session) {
         loaded_scenarios$params[[newly_selected_scenario]] <- new_params
         loaded_scenarios$incomes[[newly_selected_scenario]] <- new_income
       })
+      # If on the "About" tab, change to the "Net Income" tab to show some results
+      if (input$resultsTabset == "About") {
+        updateTabsetPanel(session, "resultsTabset", selected = "Net Income")
+      }
     }
     # Check for any loaded scenarios that are un-selected, and delete them
     unselected_scenarios <- setdiff(loaded_scenarios_names, input$selected_scenarios)
