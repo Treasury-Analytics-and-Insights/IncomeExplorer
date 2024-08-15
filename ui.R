@@ -25,6 +25,7 @@ shinyUI(fluidPage(
   tags$head(tags$style(HTML(
     "a {color:#000000} a:hover, a:focus {color:#707070} .btn {margin-bottom:5px}"
   ))),
+  tags$head(tags$link(rel = "shortcut icon", href = "favicon.ico")), 
   # Side menu
   sidebarLayout(
     sidebarPanel(
