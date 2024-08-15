@@ -36,6 +36,7 @@ shinyUI(fluidPage(
           div(
             style = "float:left; padding:0 10px 8px 0;",
             a(
+              target = "_blank",
               href = "https://www.treasury.govt.nz/",
               img(style = "display:block", src = "logo.svg", height = "30px")
             )
@@ -126,17 +127,20 @@ shinyUI(fluidPage(
       
       fluidRow(
         style = "text-align:center",
-        a("Source", href = "https://github.com/Treasury-Analytics-and-Insights/IncomeExplorer"),
+        a("Source", target = "_blank", href = "https://github.com/Treasury-Analytics-and-Insights/IncomeExplorer"),
         " | ",
-        a("License", href = "https://github.com/Treasury-Analytics-and-Insights/IncomeExplorer/blob/master/LICENSE.md"),
+        a("License", target = "_blank", href = "https://github.com/Treasury-Analytics-and-Insights/IncomeExplorer/blob/master/LICENSE.md"),
         " | ",
-        a("The Treasury", href = "https://www.treasury.govt.nz/"),
+        a("The Treasury", target = "_blank", href = "https://www.treasury.govt.nz/"),
         " | ",
-        a("www.govt.nz", href = "https://www.govt.nz/"),
+        a("www.govt.nz", target = "_blank", href = "https://www.govt.nz/"),
         br(),
         span(
           style = "font-variant:small-caps; font-size:14px;",
-          a(strong("Analytics"), em("&"), strong("Insights"), href = "https://github.com/Treasury-Analytics-and-Insights/")
+          a(
+            "© 2024 ", strong("Analytics"), em("&"), strong("Insights"),
+            target = "_blank", href = "https://github.com/Treasury-Analytics-and-Insights/"
+          )
         )
       )
     ),
