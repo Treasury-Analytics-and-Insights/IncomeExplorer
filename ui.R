@@ -1,5 +1,5 @@
 #
-# This is the user-interface definition of the IncomeExplorer Shiny web application. You can
+# This is the user-interface definition of the Income Explorer Shiny web application. You can
 # run the application by clicking 'Run App' above.
 #
 ###############################
@@ -42,9 +42,9 @@ shinyUI(fluidPage(
               img(style = "display:block", src = "logo.svg", height = "30px")
             )
           ),
-          div(style = "float:left; padding:0 0 10px 0", "IncomeExplorer")
+          div(style = "float:left; padding:0 0 10px 0", "Income Explorer")
         ),
-        windowTitle = "IncomeExplorer"
+        windowTitle = "Income Explorer"
       ),
       br(style = "clear:both"),
       fluidRow(
