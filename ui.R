@@ -173,6 +173,52 @@ shinyUI(fluidPage(
           )
         ),
         tabPanel(
+          "Description",
+          mainPanel(
+            h2("Measures of work incentives"),
+            tags$ul(
+              tags$li("Net Income - The Net Income tab shows how an individual’s income in the hand, that is income after taxes and government welfare transfers, changes as their hours in work changes."),
+              tags$li("Effective Marginal Tax Rate – The EMTR tab shows what percentage of a one dollar increase in earnings is retained as income in the hand."),
+              tags$li("Replacement Rate – The RR tab shows what percentage of an individual’s income in the hand would be replaced by government welfare transfers if they chose to stop working."),
+              tags$li("Participation Tax Rate – The PTR tab shows the total amount of additional tax paid and welfare transfers forgone by an individual as they move from unemployment into work, as a percentage of gross income."),
+              tags$li("Income Composition – The Income Composition tab shows how earnings, taxes, and various government welfare transfers combine to give an individual’s net income.")
+            ),
+            h2("Included taxes and transfers"),
+            tags$ul(
+              tags$li("Personal Income Tax (PIT)"),
+              tags$li("ACC Earners' Levy"),
+              tags$li("Working for Families (WFF)"),
+              tags$ul(
+                tags$li("Family Tax Credit (FTC)"), 
+                tags$li("In-Work Tax Credit (IWTC)"), 
+                tags$li("Minimum Family Tax Credit (MFTC)"), 
+                tags$li("Best Start"),
+              ),
+              tags$li("Independent Earners Tax Credit (IETC"),
+              tags$li("Core Benefits"),
+              tags$ul(
+                tags$li("Jobseeker Support (JSS)"), 
+                tags$li("Sole Parent Support (SPS)"), 
+              ),
+              tags$li("Winter Energy Payment (WEP)"),
+              tags$li("Accommodation Supplement (AS)"),
+            ),
+            h2("Limitations"),
+            tags$ul(
+              tags$li("Accommodation Supplement (AS) – AS is subject to more than just an income test. These additional tests include asset tests, which are not currently included in the Income Explorer tool. To model an individual that is ineligible for AS, set their accommodation costs to zero."),
+              tags$li("Superannuation – The Income Explorer does not currently model superannuation, and so will not reflect the incomes or work incentives of people eligible for superannuation."),
+              tags$li("Family Boost – The Income Explorer does not currently model Family Boost, which is a payment that helps parents of young children with the costs of early childhood education."),
+              tags$li("Supported Living Payment (SPS) – The Income Explorer does not currently model SPS, which provides income support to people who have a permanent and severe health condition, injury or disability, or for people who are caring for someone who requires fulltime care."),
+              tags$li("Young Parent Payment (YPP) – The Income Explorer does not currently model YPP, which provides income support for 16 – 19 year olds with children."),
+              tags$li("Youth Payment (YP) – The Income Explorer does not currently model YP, which provides income support for 16/17 year olds who aren’t supported by a parent, guardian, or other person."),
+              tags$li("Income Related Rent Subsidy (IRRS) – The Income Explorer does not currently model IRRS, which subsidies rent for people on low incomes."),
+              tags$li("Temporary Additional Support (TAS) – The Income Explorer does not currently model TAS, which is a temporary weekly payment that helps people who can’t afford their essential living costs."),
+              tags$li("Supported Living Payment (SPS) – The Income Explorer does not currently model SPS, which provides income support to people who have a permanent and severe health condition, injury or disability, or for people who are caring for someone who requires fulltime care."),
+              tags$li("Student Loan Repayments – The Income Explorer does not currently model student loans, which are repaid by loan holders at a set rate on earnings over a certain threshold. Student loan repayments reduce income in the hand, and so may affect work incentives. However, repayment of loans have private benefits, and so this relationship will be more complicated.")
+            ),
+          )
+        ),
+        tabPanel(
           "Net Income",
           br(),
           plotlyOutput("plot_netincome", height = "500px")
