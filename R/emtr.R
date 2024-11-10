@@ -180,7 +180,10 @@ emtr <- function(
   MFTC_WEP_scaling = NULL,
   pov_thresholds = 0.5,
   bhc_median = 43000,
-  ahc_median = 33100) {
+  ahc_median = 33100, 
+  super = FALSE,
+  sharing_house = FALSE,
+  partner_onsuper = FALSE) {
   
   # Work out length of the year
   model_year <- Parameters$modelyear
@@ -260,6 +263,7 @@ emtr <- function(
     convert_scale_to_weekly(Parameters$FamilyAssistance_IWTC_PhaseIn_Couple, 52.2)  
   FamilyAssistance_BestStart_Abatement_AbatementScale_Weekly <-
     convert_scale_to_weekly(Parameters$FamilyAssistance_BestStart_Abatement_AbatementScale, 365/7)
+
 
   
   
@@ -353,6 +357,62 @@ emtr <- function(
       AS_MaxRate_Mortgage[AS_Area, pmax(2L - N_kids - 1L * Partnered, 0L) + 1L]
   }
   
+  # Assign super
+  
+  # Couples who both qualify for super
+  if (super == TRUE & partner_onsuper == TRUE & Partnered == TRUE) {
+    Super1_Net_0hrs <- Parameters$Super_Rates_MarriedPerson
+    Super2_Net_0hrs <- Parameters$Super_Rates_MarriedPerson
+  }
+  # Couples only one qualify
+  if (super == TRUE & partner_onsuper == FALSE & Partnered == TRUE) {
+    Super1_Net_0hrs <- Parameters$Super_Rates_MarriedPerson
+    Super2_Net_0hrs <- 0
+  }
+  # Single people living alone
+  if(Partnered == FALSE & super == TRUE & partner_onsuper == FALSE & sharing_house == FALSE){
+    Super1_Net_0hrs <- Parameters$Super_Rates_Single
+    Super2_Net_0hrs <- 0
+  }
+  # Single people sharing accommodation
+  if(Partnered == FALSE & super == TRUE & partner_onsuper == FALSE & sharing_house == TRUE){
+    Super1_Net_0hrs <- Parameters$Super_Rates_SingleSharing
+    Super2_Net_0hrs <- 0
+  }
+  # Only the partner receives super
+  if(Partnered == TRUE & super == FALSE & partner_onsuper == TRUE){
+    Super2_Net_0hrs <- Parameters$Super_Rates_MarriedPerson
+    Super1_Net_0hrs <- 0
+  }
+  # Zero out the rates that super not eligible for
+  if(super == TRUE & partner_onsuper == TRUE & Partnered == TRUE){
+    Benefit1_Net_0hrs <- 0
+    Benefit2_Net_0hrs <- 0
+  }
+  if(super == TRUE & partner_onsuper == FALSE & Partnered == TRUE){
+    Benefit1_Net_0hrs <- 0
+  }
+  if(super == TRUE & Partnered == FALSE){
+    Benefit1_Net_0hrs <- 0
+    IETC_rate <- 0
+  }
+  
+  # Assign super income limits for receivng AS
+  NZS_Income_Limit <- 0
+  
+  if(super == TRUE & Partnered == TRUE){
+    NZS_Income_Limit <- Parameters$Accommodation_NZSIncomeLimit_Couple
+  }
+  if(super == TRUE & Partnered == FALSE & N_kids >= 2L){
+    NZS_Income_Limit <- Parameters$Accommodation_NZSIncomeLimit_SoleParent2_Deps
+  }
+  if(super == TRUE & Partnered == FALSE & N_kids == 1L){
+    NZS_Income_Limit <- Parameters$Accommodation_NZSIncomeLimit_SoleParent1Dep
+  }
+  if(super == TRUE & Partnered == FALSE & N_kids == 0L){
+    NZS_Income_Limit <- Parameters$Accommodation_NZSIncomeLimit_Single
+  }
+
   # Initiate the output table --------------------------------------------------
   X <- data.table(gross_wage1 = seq(0, max_wage, 1 / steps_per_dollar))
   X[, hours1 := gross_wage1 / wage1_hourly]
@@ -362,7 +422,7 @@ emtr <- function(
   X[, gross_wage2 := gross_wage2]
 
   # These are zero by default --------------------------------------------------
-  X[, wage2_tax := 0]
+  X[, wage_super2_tax := 0]
   X[, wage2_ACC_levy := 0]
   X[, net_wage2 := 0]
   X[, net_benefit2 := 0]
@@ -370,12 +430,15 @@ emtr <- function(
 
   X[, IETC_abated1 := 0]
   X[, IETC_abated2 := 0]
+  
+  X[, gross_super1 := Super1_Net_0hrs]
+  X[, gross_super2 := Super2_Net_0hrs]
+  X[, net_benefit_super_and_wage2 := 0]
 
   # Abate benefit --------------------------------------------------------------
   X[, net_benefit1 := 
       Abate(TRUE, Benefit1_Net_0hrs, 
             Benefit_Abatement_Scale, gross_wage1 + gross_wage2)]
-
   
   
   if (Partnered){
@@ -399,7 +462,7 @@ emtr <- function(
     }
     
     # Eligible if have children and wage exceeds the threshold
-    X[, IWTC_eligible := 1L * (N_kids > 0L) * ((gross_wage1 + gross_wage2) >=
+    X[, IWTC_eligible := 1L * (N_kids > 0L) * ((gross_wage1 + gross_wage2 + gross_super1 + gross_super2) >=
                                                  IWTC_IncomeThreshold)]
     
     # Calculate unabated IWTC
@@ -433,7 +496,7 @@ emtr <- function(
     # Calcuated phased-in/unabated amount
     X[, IWTC_unabated := (N_kids > 0L)*
         pmin(IWTC_max,
-             Abate(TRUE, 0, IWTC_PhaseInScale_Weekly, gross_wage1+gross_wage2))]
+             Abate(TRUE, 0, IWTC_PhaseInScale_Weekly, gross_wage1+gross_wage2 + gross_super1 + gross_super2))]
   } else {
     # Hours test and do not give to beneficiaries
     
@@ -459,6 +522,7 @@ emtr <- function(
     X[, IWTC_eligible := NULL]
   }
   
+  
   # Back out Gross benefit
   X[, gross_benefit1 := Gross_From_Net(net_benefit1, NIT, Tax_BaseScale_Weekly)]
   X[, gross_benefit1 := Gross_From_Net(net_benefit1, NIT, Tax_BaseScale_Weekly)]
@@ -469,15 +533,15 @@ emtr <- function(
   }
   
   # Add wage on to benefit and tax
-  X[, gross_benefit_and_wage1 := gross_benefit1 + gross_wage1]
-  X[, net_benefit_and_wage1 := Net_From_Gross(gross_benefit_and_wage1, Tax_BaseScale_Weekly)]
-  X[, wage1_tax := (gross_benefit_and_wage1 - net_benefit_and_wage1) - 
+  X[, gross_benefit_super_and_wage1 := gross_benefit1 + gross_wage1 + gross_super1]
+  X[, net_benefit_super_and_wage1 := Net_From_Gross(gross_benefit_super_and_wage1, Tax_BaseScale_Weekly)]
+  X[, wage_super1_tax := (gross_benefit_super_and_wage1 - net_benefit_super_and_wage1) - 
       (gross_benefit1 - net_benefit1)]
   
   if (Partnered) {
-    X[, gross_benefit_and_wage2 := gross_benefit2 + gross_wage2]
-    X[, net_benefit_and_wage2 := Net_From_Gross(gross_benefit_and_wage2, Tax_BaseScale_Weekly)]
-    X[, wage2_tax := (gross_benefit_and_wage2 - net_benefit_and_wage2) - (gross_benefit2 - net_benefit2)]
+    X[, gross_benefit_super_and_wage2 := gross_benefit2 + gross_wage2 + gross_super2]
+    X[, net_benefit_super_and_wage2 := Net_From_Gross(gross_benefit_super_and_wage2, Tax_BaseScale_Weekly)]
+    X[, wage_super2_tax := (gross_benefit_super_and_wage2 - net_benefit_super_and_wage2) - (gross_benefit2 - net_benefit2)]
   }
   
   # Work out ACC levy
@@ -488,10 +552,10 @@ emtr <- function(
   }
   
   # Form net wage
-  X[, net_wage1 := gross_wage1 - wage1_tax - wage1_ACC_levy]
+  X[, net_wage1 := pmax(0, gross_wage1 - wage_super1_tax - wage1_ACC_levy)]
   
   if (Partnered){
-    X[, net_wage2 := gross_wage2 - wage2_tax - wage2_ACC_levy]
+    X[, net_wage2 := pmax(0, gross_wage2 - wage_super2_tax - wage2_ACC_levy)]
   }
   
   # Form unabated FTC
@@ -517,7 +581,7 @@ emtr <- function(
   
   # Work out MFTC amount (if benefit == 0)
   X[, MFTC := MFTC_eligible *
-      (pmax(MFTC_amount - (gross_wage1 + gross_wage2 - wage1_tax - wage2_tax),0))]
+      (pmax(MFTC_amount - (gross_wage1 + gross_wage2 + gross_super1 + gross_super2 - wage_super1_tax - wage_super2_tax),0))]
   
   
   # tidy up
@@ -526,7 +590,7 @@ emtr <- function(
   
   # Abate FTC and IWTC ------------
   X[, AbateAmount :=
-      Apply(gross_wage1 + gross_wage2 + gross_benefit1 + gross_benefit2,
+      Apply(gross_wage1 + gross_wage2 + gross_super1 + gross_super2 + gross_benefit1 + gross_benefit2,
             FamilyAssistance_Abatement_AbatementScale_Weekly)]
   
   
@@ -558,7 +622,7 @@ emtr <- function(
   X[, BestStart_Universal := BS_nonabating_kids*BS_Rate0]
   X[, BestStart_Abated := Abate(TRUE, BS_abating_kids*BS_Rate1or2,
                                 FamilyAssistance_BestStart_Abatement_AbatementScale_Weekly,
-                                gross_wage1+gross_wage2+gross_benefit1+gross_benefit2)]
+                                gross_wage1+gross_wage2+gross_benefit1+gross_benefit2 + gross_super1 + gross_super2)]
   X[, BestStart_Total := BestStart_Universal + BestStart_Abated]
   
   
@@ -588,9 +652,6 @@ emtr <- function(
   # tidy up
   X[, IETC_eligible1 := NULL]
   X[, IETC_eligible2 := NULL]
-  
-  
-  
   
   # Winter Energy --------
   X[, WE_Couple_or_Deps := 0]
@@ -623,16 +684,24 @@ emtr <- function(
   X[, AS_Amount := pmax(
     pmin(Parameters$Accommodation_PaymentPercentage * (AS_Accommodation_Costs - AS_entry_threshold),
          AS_Maximum) -
-      pmax(gross_wage1 + gross_wage2 - AS_Abate_Point, 0) * 
+      pmax(gross_wage1 + gross_wage2 + gross_super1 + gross_super2 - AS_Abate_Point, 0) * 
       Parameters$Accommodation_AbatementRate * ((net_benefit1 + net_benefit2) == 0), 0)]
+  
+  # zero out AS for those over the NZS income limits, NZS_Income_Limit is 0 if it is a non-super family
+  X[(gross_wage1 + gross_wage2)>NZS_Income_Limit, AS_Amount := 0]
+  
+  # Adding net super
+  X[, net_super1 := net_benefit_super_and_wage1-net_benefit1-net_wage1]
+  X[, net_super2 := net_benefit_super_and_wage2 -net_benefit2 - net_wage2]
   
   # Combo columns
   X[, ":="(
+    net_super = net_super1 + net_super2,
     net_wage = net_wage1 + net_wage2,
     net_benefit = net_benefit1 + net_benefit2,
     benefit_tax = -(gross_benefit1 + gross_benefit2 - net_benefit1 - net_benefit2),
     gross_wage = gross_wage1 + gross_wage2,
-    wage_tax_and_ACC = -(wage1_tax + wage2_tax + wage1_ACC_levy + wage2_ACC_levy),
+    wage_tax_and_ACC = -(wage_super1_tax + wage_super2_tax + wage1_ACC_levy + wage2_ACC_levy),
     IETC_abated = IETC_abated1 + IETC_abated2,
     WFF_abated = FTC_abated + IWTC_abated
   )]
@@ -641,7 +710,7 @@ emtr <- function(
   # As in TAWA proc the disposable income is calculated as: 
   # P_Income_Total + P_FamilyAssistance_Total + P_TaxCredit_IETC - P_Income_TaxPayable - P_ACC_LevyPayable
   # Same definition as "Net_Income", so use "Net_Income" as disposable income.
-  X[, Net_Income := rowSums(.SD), .SDcols = net_income_components]
+  X[, Net_Income := rowSums(.SD), .SDcols = c(net_income_components, "net_super")]
   X[, Net_Income_annual := Net_Income*weeks_in_year]
   
   # Calculate EMTRs, RRs, and PTRs; and their decomposition into each

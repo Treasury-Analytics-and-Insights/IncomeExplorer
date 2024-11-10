@@ -54,5 +54,12 @@ PARAMS_TEMPLATE <- data.table::as.data.table(tibble::tribble(
   "IETC/OnlyFamiliesWithoutChildren", "0", 'Independent Earner Tax Credit, 0: give to everyone, 1: only give to families without children',
   "Tax/BaseScale", "[['0'; '0']]", 'Tax scale',
   "MFTC_WEP_scaling", "1", 'How should the Winter Energy Payment be scaled? Average week = 1, Winter week = 12/5, Summer week = 0',
-  "WFF_or_Benefit", "Max", 'What work decision should we assume? Go off-benefit and receive IWTC = "WFF", stay on-benefit = "Benefit", or whichever gives a higher net income = "Max"'
+  "WFF_or_Benefit", "Max", 'What work decision should we assume? Go off-benefit and receive IWTC = "WFF", stay on-benefit = "Benefit", or whichever gives a higher net income = "Max"',
+  "Super_Rates_MarriedPerson", "0", 'Super Married Person Rates',
+  "Super_Rates_Single", "0", 'Super Single Rates',
+  "Super_Rates_SingleSharing", "0", 'Super SingleSharing Rates',
+  "Accommodation_NZSIncomeLimit_Couple", "0", 'Accommodation Supplement NZSIncomeLimit Couple',
+  "Accommodation_NZSIncomeLimit_Single", "0", 'Accommodation Supplement NZSIncomeLimit Single',
+  "Accommodation_NZSIncomeLimit_SoleParent1Dep", "0", 'Accommodation Supplement NZSIncomeLimit Sole Parent 1 Dependent',
+  "Accommodation_NZSIncomeLimit_SoleParent2_Deps", "0", 'Accommodation Supplement NZSIncomeLimit Sole Parent 2 Dependents'
 ))
