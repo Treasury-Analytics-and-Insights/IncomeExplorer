@@ -32,14 +32,33 @@ shinyServer(function(input, output, session) {
   showModal(warning_modal)
   
   observeEvent(input$Partnered, {
-    if (input$Partnered) {
+    if (input$Partnered ) {
       show("gross_wage2")
       show("hours2")
+      show("partner_onsuper")
+      hide("sharing_house")
     } else {
       hide("gross_wage2")
       hide("hours2")
+      hide("partner_onsuper")
+      show("sharing_house")
     }
   })
+  
+  observeEvent(input$super, {
+    if (input$super & !input$partner_onsuper& !input$Partnered) {
+      show("sharing_house")
+    } else {
+      hide("sharing_house")
+    }
+  })
+  
+  observeEvent(input$super, {
+    if (!input$super) {
+      hide("sharing_house")
+    } 
+  })
+  
   
   # Input validation
   iv <- InputValidator$new()

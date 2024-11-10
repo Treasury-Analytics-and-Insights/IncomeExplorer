@@ -108,10 +108,12 @@ shinyUI(fluidPage(
         "Age of children (e.g. '1, 4' or leave blank)",
         "0, 10"
       ),
+      
       # Input partner status
       checkboxInput("Partnered", "Partnered", value = FALSE),
-      # Input parter wage details, note that this is only
-      # displayed if there is a partner
+      checkboxInput("partner_onsuper", "Partner on Super", value = FALSE),
+      # Input sharing house situation, note that this is only
+      # displayed if we look at super
       fluidRow(
         column(6, hidden(numericInput(
           "gross_wage2", "Partner's hourly wage ($)",
@@ -123,8 +125,24 @@ shinyUI(fluidPage(
             "hours2", "Partner's hours worked",
             min = 0, max = 80, value = 0, step = 5
           )
+        )),
+        column(3, hidden(
+          checkboxInput(
+            "partner_onsuper", "Partner on Super", value = FALSE
+          )
         ))
       ),
+      
+      # Input partner status
+      checkboxInput("super", "Retiree", value = FALSE),
+      # Input sharing house situation, note that this is only
+      # displayed if we look at super
+      fluidRow(
+        column(6, hidden(checkboxInput(
+          "sharing_house", "Single Sharing House", value = FALSE
+        ))),
+      ),
+      
       
       fluidRow(
         style = "text-align:center",
