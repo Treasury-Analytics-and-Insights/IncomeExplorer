@@ -361,28 +361,28 @@ emtr <- function(
   
   # Couples who both qualify for super
   if (super == TRUE & partner_onsuper == TRUE & Partnered == TRUE) {
-    Super1_Net_0hrs <- Parameters$Super_Rates_MarriedPerson
-    Super2_Net_0hrs <- Parameters$Super_Rates_MarriedPerson
+    Super1_Gross_0hrs <- Parameters$Super_Rates_MarriedPerson
+    Super2_Gross_0hrs <- Parameters$Super_Rates_MarriedPerson
   }
   # Couples only one qualify
   if (super == TRUE & partner_onsuper == FALSE & Partnered == TRUE) {
-    Super1_Net_0hrs <- Parameters$Super_Rates_MarriedPerson
-    Super2_Net_0hrs <- 0
+    Super1_Gross_0hrs <- Parameters$Super_Rates_MarriedPerson
+    Super2_Gross_0hrs <- 0
   }
   # Single people living alone
   if(Partnered == FALSE & super == TRUE & partner_onsuper == FALSE & sharing_house == FALSE){
-    Super1_Net_0hrs <- Parameters$Super_Rates_Single
-    Super2_Net_0hrs <- 0
+    Super1_Gross_0hrs <- Parameters$Super_Rates_Single
+    Super2_Gross_0hrs <- 0
   }
   # Single people sharing accommodation
   if(Partnered == FALSE & super == TRUE & partner_onsuper == FALSE & sharing_house == TRUE){
-    Super1_Net_0hrs <- Parameters$Super_Rates_SingleSharing
-    Super2_Net_0hrs <- 0
+    Super1_Gross_0hrs <- Parameters$Super_Rates_SingleSharing
+    Super2_Gross_0hrs <- 0
   }
   # Only the partner receives super
   if(Partnered == TRUE & super == FALSE & partner_onsuper == TRUE){
-    Super2_Net_0hrs <- Parameters$Super_Rates_MarriedPerson
-    Super1_Net_0hrs <- 0
+    Super2_Gross_0hrs <- Parameters$Super_Rates_MarriedPerson
+    Super1_Gross_0hrs <- 0
   }
   # Zero out the rates that super not eligible for
   if(super == TRUE & partner_onsuper == TRUE & Partnered == TRUE){
@@ -431,8 +431,8 @@ emtr <- function(
   X[, IETC_abated1 := 0]
   X[, IETC_abated2 := 0]
   
-  X[, gross_super1 := Super1_Net_0hrs]
-  X[, gross_super2 := Super2_Net_0hrs]
+  X[, gross_super1 := Super1_Gross_0hrs]
+  X[, gross_super2 := Super2_Gross_0hrs]
   X[, net_benefit_super_and_wage2 := 0]
 
   # Abate benefit --------------------------------------------------------------
@@ -533,15 +533,49 @@ emtr <- function(
   }
   
   # Add wage on to benefit and tax
-  X[, gross_benefit_super_and_wage1 := gross_benefit1 + gross_wage1 + gross_super1]
-  X[, net_benefit_super_and_wage1 := Net_From_Gross(gross_benefit_super_and_wage1, Tax_BaseScale_Weekly)]
-  X[, wage_super1_tax := (gross_benefit_super_and_wage1 - net_benefit_super_and_wage1) - 
+  # Total tax
+  X[, total_taxable1 := gross_benefit1 + gross_wage1 + gross_super1]
+  X[, total_net1 := Net_From_Gross(total_taxable1, Tax_BaseScale_Weekly)]
+  X[, wage_super1_tax := (total_taxable1 - total_net1) - 
       (gross_benefit1 - net_benefit1)]
   
   if (Partnered) {
-    X[, gross_benefit_super_and_wage2 := gross_benefit2 + gross_wage2 + gross_super2]
-    X[, net_benefit_super_and_wage2 := Net_From_Gross(gross_benefit_super_and_wage2, Tax_BaseScale_Weekly)]
-    X[, wage_super2_tax := (gross_benefit_super_and_wage2 - net_benefit_super_and_wage2) - (gross_benefit2 - net_benefit2)]
+    X[, total_taxable2 := gross_benefit2 + gross_wage2 + gross_super2]
+    X[, total_net2 := Net_From_Gross(total_taxable2, Tax_BaseScale_Weekly)]
+    X[, wage_super2_tax := (total_taxable2 - total_net2) - (gross_benefit2 - net_benefit2)]
+  }
+  
+  if (gross_wage1 >= gross_super1) {
+    X[, taxable_income1 := gross_benefit1 + gross_wage1]
+    X[, net_income1 := Net_From_Gross(taxable_income1, Tax_BaseScale_Weekly)]
+    X[, wage1_tax := (taxable_income1 - net_income1) - 
+        (gross_benefit1 - net_benefit1)]
+    X[, super1_tax := wage_super1_tax - wage1_tax]
+  }
+
+  if (gross_super1 > gross_wage1) {
+    X[, taxable_income1 := gross_benefit1 + gross_super1]
+    X[, net_income1 := Net_From_Gross(taxable_income1, Tax_BaseScale_Weekly)]
+    X[, super1_tax := (taxable_income1 - net_income1) - 
+        (gross_benefit1 - net_benefit1)]
+    X[, wage1_tax := wage_super1_tax - super1_tax]
+  }
+  
+  if (Partnered) {
+    if (gross_wage2 >= gross_super2) {
+      X[, taxable_income2 := gross_benefit2 + gross_wage2]
+      X[, net_income2 := Net_From_Gross(taxable_income2, Tax_BaseScale_Weekly)]
+      X[, wage2_tax := (taxable_income2 - net_income2) - 
+          (gross_benefit2 - net_benefit2)]
+      X[, super2_tax := wage_super2_tax - wage2_tax]
+    }
+    if (gross_super2 > gross_wage2) {
+      X[, taxable_income2 := gross_benefit2 + gross_super2]
+      X[, net_income2 := Net_From_Gross(taxable_income2, Tax_BaseScale_Weekly)]
+      X[, super2_tax := (taxable_income2 - net_income2) - 
+          (gross_benefit2 - net_benefit2)]
+      X[, wage2_tax := wage_super2_tax - super2_tax]
+    }
   }
   
   # Work out ACC levy
@@ -552,10 +586,10 @@ emtr <- function(
   }
   
   # Form net wage
-  X[, net_wage1 := pmax(0, gross_wage1 - wage_super1_tax - wage1_ACC_levy)]
+  X[, net_wage1 := gross_wage1 - wage1_tax - wage1_ACC_levy]
   
   if (Partnered){
-    X[, net_wage2 := pmax(0, gross_wage2 - wage_super2_tax - wage2_ACC_levy)]
+    X[, net_wage2 := gross_wage2 - wage2_tax - wage2_ACC_levy]
   }
   
   # Form unabated FTC
