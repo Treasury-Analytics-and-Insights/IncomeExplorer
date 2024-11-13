@@ -185,7 +185,8 @@ shinyUI(fluidPage(
           mainPanel(
             h3("Measures of work incentives:"),
             tags$ul(
-              tags$li(strong("Net Income"), " – The Net Income tab shows how an individual’s income in the hand, that is income after taxes and government welfare transfers, changes as their earnings from work change. "),
+              tags$li(strong("Net Income"), " – The Net Income tab shows how an individual’s income in the hand, that is income after taxes and government welfare transfers, changes as their earnings from work change."),
+              br(),
               tags$li(withMathJax(strong("Effective Marginal Tax Rate (EMTR)"), " – The EMTR tab shows what percentage of a one dollar increase in gross earnings is not received in the hand due to taxation and the abatement of government welfare transfers.
                                   $$EMTR=1-\\frac{\\text{change in income in hand}}{\\text{change in gross earnings}}$$")),
               tags$li(strong("Replacement Rate (RR)"), " – The RR tab shows what percentage of an individual’s income in the hand would be replaced by government welfare transfers if they chose to stop working.",
@@ -225,11 +226,14 @@ shinyUI(fluidPage(
               tags$li(strong("Accommodation Supplement (AS)"), " – This tool assumes full
                       take up of AS for all individuals with qualifying incomes and accommodation costs.
                       However, AS eligibility is subject to additional tests, including asset tests, that are not currently included in the Income Explorer tool. To model an
-                      individual that is ineligible for/chooses not to take up AS, set their accommodation costs to zero.")
+                      individual that is ineligible for/chooses not to take up AS, set their accommodation costs to zero."),
+              tags$li(strong("Jobseeker Support (JSS)"), " – This tool applies the ", em("Single, 25 years or over"), " JSS rate to 
+              all qualifying single people without children. It does not account for the different rates of JSS that are 
+              provided to people aged between 18 and 24 years older.")
             ),
             h3("The Income Explorer does not currently model:"),
             tags$ul(
-              tags$li(strong("Superannuation"),
+              tags$li(strong("NZ Superannuation"),
                       " –  income modelling for superannuitants will be added to this tool soon."),
               tags$li(strong("Family Boost"),
                       " – payment that helps the parents of young children with the costs of early childhood education."),
@@ -248,6 +252,7 @@ shinyUI(fluidPage(
               " – repaid by loan holders at a set rate on earnings over a specified earnings threshold. Student loan repayments reduce income in the hand,
               and so may affect work incentives. However, loan repayments benefit the individual, meaning the impacts on work incentives
               will be more complicated."),
+              tags$li(strong("Student Allowance and Student Loan Living Costs"), " – which are payments and loans provided to tertiary students."),
               tags$li(strong("Paid Parental Leave"),
               " – a payment that allows new parents to take paid time off work."),
               tags$li(strong("Child Support Pass On"),
