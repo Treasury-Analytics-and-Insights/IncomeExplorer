@@ -194,12 +194,12 @@ shinyUI(fluidPage(
                            class = "tooltip-span",
                            "Example"),
                       "$$RR=\\frac{\\text{income in the hand when not working}}{\\text{income in the hand when working}}$$"),
-              tags$li(strong("Participation Tax Rate (PTR)"), " – The PTR tab shows the total amount of additional tax paid and welfare transfers forgone by an individual as they move from unemployment into work, as a percentage of gross income.",
+              tags$li(strong("Participation Tax Rate (PTR)"), " – The PTR tab shows what percentage of gross earnings is not received in the hand when an individual moves from unemployment into work, due to additional tax paid and reduced government welfare transfers.",
                       span(title = "If someone could earn $1000 by working but would lose $400 in benefits and pay $200 in taxes, their participation tax rate would be 60% (losing $600 compared to a gross gain of $1000). A higher participation tax rate means people keep less of their earnings when they start working, which might discourage them from entering the workforce. This measure helps policymakers understand how tax and transfer systems together affect people's incentives to work versus remain on benefits.",
                            class = "tooltip-span",
                            "Example"),
                       "$$PTR=1-\\frac{\\text{income in the hand from working}-\\text{income in the hand when not working}}{\\text{gross earnings from working}}$$"),
-              tags$li(strong("Income Composition"), " – The Income Composition tab shows how  earnings, taxes, and various government welfare transfers combine to give an individual’s net income.")
+              tags$li(strong("Income Composition"), " – The Income Composition tab shows how earnings, taxes, and various government welfare transfers combine to give an individual’s net income, and how this changes as their gross earnings change.")
             ),
             h3("The following taxes and transfers are modelled in the Income Explorer:"),
             tags$ul(
@@ -233,7 +233,7 @@ shinyUI(fluidPage(
             ),
             h3("The Income Explorer does not currently model:"),
             tags$ul(
-              tags$li(strong("NZ Superannuation"),
+              tags$li(strong("NZ Superannuation (NZS)"),
                       " –  income modelling for superannuitants will be added to this tool soon."),
               tags$li(strong("Family Boost"),
                       " – payment that helps the parents of young children with the costs of early childhood education."),
@@ -248,8 +248,12 @@ shinyUI(fluidPage(
               " – subsidises rent for people on low incomes."),
               tags$li(strong("Temporary Additional Support (TAS)"),
               " – temporary weekly payment that helps people who can’t afford their essential living costs."),
-              tags$li(strong("Student Loan Repayments "),
-              " – repaid by loan holders at a set rate on earnings over a specified earnings threshold. Student loan repayments reduce income in the hand,
+              tags$li(strong("KiwiSaver Contributions"), 
+              " – payments made by employees and employers into retirement savings schemes. 
+                      Employee contributions reduce income in the hand and so may affect work incentives. However, savings benefit the individual, 
+                      meaning the impacts on work incentives will be more complicated."),
+              tags$li(strong("Student Loan Repayments"),
+              " – repaid by loan holders at a set rate on earnings over a specified earnings threshold. Student loan repayments reduce income in the hand
               and so may affect work incentives. However, loan repayments benefit the individual, meaning the impacts on work incentives
               will be more complicated."),
               tags$li(strong("Student Allowance and Student Loan Living Costs"), " – which are payments and loans provided to tertiary students."),
