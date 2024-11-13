@@ -189,12 +189,12 @@ shinyUI(fluidPage(
               tags$li(withMathJax(strong("Effective Marginal Tax Rate (EMTR)"), " – The EMTR tab shows what percentage of a one dollar increase in gross earnings is not received in the hand due to taxation and the abatement of government welfare transfers.
                                   $$EMTR=1-\\frac{\\text{change in income in hand}}{\\text{change in gross earnings}}$$")),
               tags$li(strong("Replacement Rate (RR)"), " – The RR tab shows what percentage of an individual’s income in the hand would be replaced by government welfare transfers if they chose to stop working.",
-                      span(title = "If someone earned $1,000 per week at their job and receives $600 in unemployment benefits when they stop working, their replacement rate would be 60%. A higher replacement rate means people can receive benefits that are closer to their work income, which may reduce their incentives to remain in employment. Replacement rates are also used to evaluate the adequacy of social safety nets and to compare welfare systems across different countries or regions.", 
+                      span(title = "If someone earned $1,000 per week at their job and receives $600 in unemployment benefits when they stop working, their replacement rate would be 60%. A higher replacement rate means people can receive benefits that are closer to their work income, which may reduce their incentives to remain in employment. Replacement rates are also used to evaluate the adequacy of social safety nets and to compare welfare systems across different countries or regions.",
                            class = "tooltip-span",
-                           "Example"), 
+                           "Example"),
                       "$$RR=\\frac{\\text{income in the hand when not working}}{\\text{income in the hand when working}}$$"),
               tags$li(strong("Participation Tax Rate (PTR)"), " – The PTR tab shows the total amount of additional tax paid and welfare transfers forgone by an individual as they move from unemployment into work, as a percentage of gross income.",
-                      span(title = "If someone could earn $1000 by working but would lose $400 in benefits and pay $200 in taxes, their participation tax rate would be 60% (losing $600 compared to a gross gain of $1000). A higher participation tax rate means people keep less of their earnings when they start working, which might discourage them from entering the workforce. This measure helps policymakers understand how tax and transfer systems together affect people's incentives to work versus remain on benefits.", 
+                      span(title = "If someone could earn $1000 by working but would lose $400 in benefits and pay $200 in taxes, their participation tax rate would be 60% (losing $600 compared to a gross gain of $1000). A higher participation tax rate means people keep less of their earnings when they start working, which might discourage them from entering the workforce. This measure helps policymakers understand how tax and transfer systems together affect people's incentives to work versus remain on benefits.",
                            class = "tooltip-span",
                            "Example"),
                       "$$PTR=1-\\frac{\\text{income in the hand from working}-\\text{income in the hand when not working}}{\\text{gross earnings from working}}$$"),
@@ -206,51 +206,51 @@ shinyUI(fluidPage(
               tags$li("ACC Earners' Levy"),
               tags$li("Working for Families (WFF):"),
               tags$ul(
-                tags$li("Family Tax Credit (FTC)"), 
-                tags$li("In-Work Tax Credit (IWTC)"), 
-                tags$li("Minimum Family Tax Credit (MFTC)"), 
+                tags$li("Family Tax Credit (FTC)"),
+                tags$li("In-Work Tax Credit (IWTC)"),
+                tags$li("Minimum Family Tax Credit (MFTC)"),
                 tags$li("Best Start Tax Credit (BSTC)"),
               ),
               tags$li("Independent Earners Tax Credit (IETC)"),
               tags$li("Core Benefits:"),
               tags$ul(
-                tags$li("Jobseeker Support (JSS)"), 
-                tags$li("Sole Parent Support (SPS)"), 
+                tags$li("Jobseeker Support (JSS)"),
+                tags$li("Sole Parent Support (SPS)"),
               ),
               tags$li("Winter Energy Payment (WEP)"),
               tags$li("Accommodation Supplement (AS)"),
             ),
             h3("Limitations of the Income Explorer"),
             tags$ul(
-              tags$li(strong("Accommodation Supplement (AS)"), " – This tool assumes full 
-                      take up of AS for all individuals with qualifying incomes and accommodation costs. 
-                      However, AS is subject to additional tests, including asset tests, that are not currently included in the Income Explorer tool. To model an 
+              tags$li(strong("Accommodation Supplement (AS)"), " – This tool assumes full
+                      take up of AS for all individuals with qualifying incomes and accommodation costs.
+                      However, AS eligibility is subject to additional tests, including asset tests, that are not currently included in the Income Explorer tool. To model an
                       individual that is ineligible for/chooses not to take up AS, set their accommodation costs to zero.")
             ),
             h3("The Income Explorer does not currently model:"),
             tags$ul(
-              tags$li(strong("Superannuation"), 
+              tags$li(strong("Superannuation"),
                       " –  income modelling for superannuitants will be added to this tool soon."),
-              tags$li(strong("Family Boost"), 
+              tags$li(strong("Family Boost"),
                       " – payment that helps the parents of young children with the costs of early childhood education."),
-              tags$li(strong("Supported Living Payment (SLP)"), 
-                      " – provides income support to people who have a permanent and severe health condition, injury or disability, 
+              tags$li(strong("Supported Living Payment (SLP)"),
+                      " – provides income support to people who have a permanent and severe health condition, injury or disability,
                       or for people who are caring for someone who requires fulltime care."),
-              tags$li(strong("Young Parent Payment (YPP)"), 
+              tags$li(strong("Young Parent Payment (YPP)"),
                       " – provides income support for 16 – 19 year olds with children."),
-              tags$li(strong("Youth Payment (YP)"), 
+              tags$li(strong("Youth Payment (YP)"),
                       " – provides income support for 16 and 17 year olds who aren’t supported by a parent, guardian, or other person."),
               tags$li(strong("Income Related Rent Subsidy (IRRS)"),
               " – subsidises rent for people on low incomes."),
               tags$li(strong("Temporary Additional Support (TAS)"),
               " – temporary weekly payment that helps people who can’t afford their essential living costs."),
               tags$li(strong("Student Loan Repayments "),
-              " – repaid by loan holders at a set rate on earnings over a specified earnings threshold. Student loan repayments reduce income in the hand, 
-              and so may affect work incentives. However, loan repayments benefit the individual, meaning the impacts on work incentives 
+              " – repaid by loan holders at a set rate on earnings over a specified earnings threshold. Student loan repayments reduce income in the hand,
+              and so may affect work incentives. However, loan repayments benefit the individual, meaning the impacts on work incentives
               will be more complicated."),
-              tags$li(strong("Paid Parental Leave"), 
+              tags$li(strong("Paid Parental Leave"),
               " – a payment that allows new parents to take paid time off work."),
-              tags$li(strong("Child Support Pass On"), 
+              tags$li(strong("Child Support Pass On"),
                       " – measures that determine how child support payments interact with benefit eligibility and abatement.")
             ),
           )
