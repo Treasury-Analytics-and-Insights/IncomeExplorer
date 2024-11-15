@@ -23,7 +23,15 @@ shinyUI(fluidPage(
   theme = shinytheme("sandstone"),
   useShinyjs(),
   tags$head(tags$style(HTML(
-    "a {color:#000000} a:hover, a:focus {color:#707070} .btn {margin-bottom:5px}"
+    "a {color:#000000} a:hover, a:focus {color:#707070} .btn {margin-bottom:5px}
+    .tooltip-span {
+    text-decoration: underline;
+    color:#fe6e00
+    }
+    .tooltip-span:hover{
+    color: #3e3f3a;
+    cursor: pointer;
+    }"
   ))),
   tags$head(tags$link(rel = "shortcut icon", href = "favicon.ico")), 
   # Side menu
@@ -197,7 +205,91 @@ shinyUI(fluidPage(
           p(style = "margin-bottom: 0.5em"),
           uiOutput("income_composition_tabs")
         ),
-        tabPanel("Policy Changes", tableOutput("changed_parameters"))
+        tabPanel("Policy Changes", tableOutput("changed_parameters")),
+        tabPanel(
+          "Description",
+          mainPanel(
+            h3("Measures of work incentives:"),
+            tags$ul(
+              tags$li(strong("Net Income"), " – The Net Income tab shows how an individual’s income in the hand, that is income after taxes and government welfare transfers, changes as their earnings from work change."),
+              br(),
+              tags$li(withMathJax(strong("Effective Marginal Tax Rate (EMTR)"), " – The EMTR tab shows what percentage of a one dollar increase in gross earnings is not received in the hand due to taxation and the abatement of government welfare transfers.
+                                  $$EMTR=1-\\frac{\\text{change in income in hand}}{\\text{change in gross earnings}}$$")),
+              tags$li(strong("Replacement Rate (RR)"), " – The RR tab shows what percentage of an individual’s income in the hand would be replaced by government welfare transfers if they chose to stop working.",
+                      span(title = "If someone earned $1,000 per week at their job and receives $600 in unemployment benefits when they stop working, their replacement rate would be 60%. A higher replacement rate means people can receive benefits that are closer to their work income, which may reduce their incentives to remain in employment. Replacement rates are also used to evaluate the adequacy of social safety nets and to compare welfare systems across different countries or regions.",
+                           class = "tooltip-span",
+                           "Example"),
+                      "$$RR=\\frac{\\text{income in the hand when not working}}{\\text{income in the hand when working}}$$"),
+              tags$li(strong("Participation Tax Rate (PTR)"), " – The PTR tab shows what percentage of gross earnings is not received in the hand when an individual moves from unemployment into work, due to additional tax paid and reduced government welfare transfers.",
+                      span(title = "If someone could earn $1000 by working but would lose $400 in benefits and pay $200 in taxes, their participation tax rate would be 60% (losing $600 compared to a gross gain of $1000). A higher participation tax rate means people keep less of their earnings when they start working, which might discourage them from entering the workforce. This measure helps policymakers understand how tax and transfer systems together affect people's incentives to work versus remain on benefits.",
+                           class = "tooltip-span",
+                           "Example"),
+                      "$$PTR=1-\\frac{\\text{income in the hand from working}-\\text{income in the hand when not working}}{\\text{gross earnings from working}}$$"),
+              tags$li(strong("Income Composition"), " – The Income Composition tab shows how earnings, taxes, and various government welfare transfers combine to give an individual’s net income, and how this changes as their gross earnings change.")
+            ),
+            h3("The following taxes and transfers are modelled in the Income Explorer:"),
+            tags$ul(
+              tags$li("Personal Income Tax (PIT)"),
+              tags$li("ACC Earners' Levy"),
+              tags$li("Working for Families (WFF):"),
+              tags$ul(
+                tags$li("Family Tax Credit (FTC)"),
+                tags$li("In-Work Tax Credit (IWTC)"),
+                tags$li("Minimum Family Tax Credit (MFTC)"),
+                tags$li("Best Start Tax Credit (BSTC)"),
+              ),
+              tags$li("Independent Earners Tax Credit (IETC)"),
+              tags$li("Core Benefits:"),
+              tags$ul(
+                tags$li("Jobseeker Support (JSS)"),
+                tags$li("Sole Parent Support (SPS)"),
+              ),
+              tags$li("Winter Energy Payment (WEP)"),
+              tags$li("Accommodation Supplement (AS)"),
+            ),
+            h3("Limitations of the Income Explorer"),
+            tags$ul(
+              tags$li(strong("Accommodation Supplement (AS)"), " – This tool assumes full
+                      take up of AS for all individuals with qualifying incomes and accommodation costs.
+                      However, AS eligibility is subject to additional tests, including asset tests, that are not currently included in the Income Explorer tool. To model an
+                      individual that is ineligible for/chooses not to take up AS, set their accommodation costs to zero."),
+              tags$li(strong("Jobseeker Support (JSS)"), " – This tool applies the ", em("Single, 25 years or over"), " JSS rate to 
+              all qualifying single people without children. It does not account for the different rates of JSS that are 
+              provided to people aged between 18 and 24 years older.")
+            ),
+            h3("The Income Explorer does not currently model:"),
+            tags$ul(
+              tags$li(strong("NZ Superannuation (NZS)"),
+                      " –  income modelling for superannuitants will be added to this tool soon."),
+              tags$li(strong("Family Boost"),
+                      " – payment that helps the parents of young children with the costs of early childhood education."),
+              tags$li(strong("Supported Living Payment (SLP)"),
+                      " – provides income support to people who have a permanent and severe health condition, injury or disability,
+                      or for people who are caring for someone who requires fulltime care."),
+              tags$li(strong("Young Parent Payment (YPP)"),
+                      " – provides income support for 16 – 19 year olds with children."),
+              tags$li(strong("Youth Payment (YP)"),
+                      " – provides income support for 16 and 17 year olds who aren’t supported by a parent, guardian, or other person."),
+              tags$li(strong("Income Related Rent Subsidy (IRRS)"),
+                      " – subsidises rent for people on low incomes."),
+              tags$li(strong("Temporary Additional Support (TAS)"),
+                      " – temporary weekly payment that helps people who can’t afford their essential living costs."),
+              tags$li(strong("KiwiSaver Contributions"), 
+                      " – payments made by employees and employers into retirement savings schemes. 
+                      Employee contributions reduce income in the hand and so may affect work incentives. However, savings benefit the individual, 
+                      meaning the impacts on work incentives will be more complicated."),
+              tags$li(strong("Student Loan Repayments"),
+                      " – repaid by loan holders at a set rate on earnings over a specified earnings threshold. Student loan repayments reduce income in the hand
+              and so may affect work incentives. However, loan repayments benefit the individual, meaning the impacts on work incentives
+              will be more complicated."),
+              tags$li(strong("Student Allowance and Student Loan Living Costs"), " – which are payments and loans provided to tertiary students."),
+              tags$li(strong("Paid Parental Leave"),
+                      " – a payment that allows new parents to take paid time off work."),
+              tags$li(strong("Child Support Pass On"),
+                      " – measures that determine how child support payments interact with benefit eligibility and abatement.")
+            )
+          )
+        )
       )
     )
   )
