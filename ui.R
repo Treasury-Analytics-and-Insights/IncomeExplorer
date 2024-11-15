@@ -181,6 +181,32 @@ shinyUI(fluidPage(
           )
         ),
         tabPanel(
+          "Net Income",
+          br(),
+          plotlyOutput("plot_netincome", height = "500px")
+        ),
+        tabPanel(
+          "EMTR",
+          br(),
+          plotlyOutput("plot_emtr", height = "500px")
+        ),
+        tabPanel(
+          "RR",
+          br(),
+          plotlyOutput("plot_replacement_rate", height = "500px")
+        ),
+        tabPanel(
+          "PTR",
+          br(),
+          plotlyOutput("plot_participation_tax_rate", height = "500px")
+        ),
+        tabPanel(
+          "Income Composition",
+          p(style = "margin-bottom: 0.5em"),
+          uiOutput("income_composition_tabs")
+        ),
+        tabPanel("Policy Changes", tableOutput("changed_parameters")),
+        tabPanel(
           "Description",
           mainPanel(
             h3("Measures of work incentives:"),
@@ -245,51 +271,25 @@ shinyUI(fluidPage(
               tags$li(strong("Youth Payment (YP)"),
                       " – provides income support for 16 and 17 year olds who aren’t supported by a parent, guardian, or other person."),
               tags$li(strong("Income Related Rent Subsidy (IRRS)"),
-              " – subsidises rent for people on low incomes."),
+                      " – subsidises rent for people on low incomes."),
               tags$li(strong("Temporary Additional Support (TAS)"),
-              " – temporary weekly payment that helps people who can’t afford their essential living costs."),
+                      " – temporary weekly payment that helps people who can’t afford their essential living costs."),
               tags$li(strong("KiwiSaver Contributions"), 
-              " – payments made by employees and employers into retirement savings schemes. 
+                      " – payments made by employees and employers into retirement savings schemes. 
                       Employee contributions reduce income in the hand and so may affect work incentives. However, savings benefit the individual, 
                       meaning the impacts on work incentives will be more complicated."),
               tags$li(strong("Student Loan Repayments"),
-              " – repaid by loan holders at a set rate on earnings over a specified earnings threshold. Student loan repayments reduce income in the hand
+                      " – repaid by loan holders at a set rate on earnings over a specified earnings threshold. Student loan repayments reduce income in the hand
               and so may affect work incentives. However, loan repayments benefit the individual, meaning the impacts on work incentives
               will be more complicated."),
               tags$li(strong("Student Allowance and Student Loan Living Costs"), " – which are payments and loans provided to tertiary students."),
               tags$li(strong("Paid Parental Leave"),
-              " – a payment that allows new parents to take paid time off work."),
+                      " – a payment that allows new parents to take paid time off work."),
               tags$li(strong("Child Support Pass On"),
                       " – measures that determine how child support payments interact with benefit eligibility and abatement.")
-            ),
+            )
           )
-        ),
-        tabPanel(
-          "Net Income",
-          br(),
-          plotlyOutput("plot_netincome", height = "500px")
-        ),
-        tabPanel(
-          "EMTR",
-          br(),
-          plotlyOutput("plot_emtr", height = "500px")
-        ),
-        tabPanel(
-          "RR",
-          br(),
-          plotlyOutput("plot_replacement_rate", height = "500px")
-        ),
-        tabPanel(
-          "PTR",
-          br(),
-          plotlyOutput("plot_participation_tax_rate", height = "500px")
-        ),
-        tabPanel(
-          "Income Composition",
-          p(style = "margin-bottom: 0.5em"),
-          uiOutput("income_composition_tabs")
-        ),
-        tabPanel("Policy Changes", tableOutput("changed_parameters"))
+        )
       )
     )
   )
