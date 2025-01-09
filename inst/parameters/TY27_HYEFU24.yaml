@@ -31,10 +31,10 @@ Benefits_JSS_CoupleAbatementScale:
   rates:
   - 0.0
   - 0.35
-Benefits_JSS_Rate_Couple: 314.77
-Benefits_JSS_Rate_CoupleParent: 332.39
-Benefits_JSS_Rate_Single: 369.97
-Benefits_JSS_Rate_SoleParent: 517.91
+Benefits_JSS_Rate_Couple: 313.17
+Benefits_JSS_Rate_CoupleParent: 330.7
+Benefits_JSS_Rate_Single: 368.08
+Benefits_JSS_Rate_SoleParent: 515.28
 Benefits_SPS_AbatementScale:
   thresholds:
   - 0.0
@@ -44,7 +44,7 @@ Benefits_SPS_AbatementScale:
   - 0.0
   - 0.3
   - 0.7
-Benefits_SPS_Rate: 517.91
+Benefits_SPS_Rate: 515.28
 Benefits_Entitlement_Age_SPS_ChildLowerBound: 14.0
 Benefits_WinterEnergy_Rates_Single: 450.0
 Benefits_WinterEnergy_Rates_CoupleOrDeps: 700.0

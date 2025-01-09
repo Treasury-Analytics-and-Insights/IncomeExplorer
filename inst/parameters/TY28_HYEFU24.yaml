@@ -31,10 +31,10 @@ Benefits_JSS_CoupleAbatementScale:
   rates:
   - 0.0
   - 0.35
-Benefits_JSS_Rate_Couple: 321.12
-Benefits_JSS_Rate_CoupleParent: 339.1
-Benefits_JSS_Rate_Single: 377.44
-Benefits_JSS_Rate_SoleParent: 528.36
+Benefits_JSS_Rate_Couple: 319.57
+Benefits_JSS_Rate_CoupleParent: 337.46
+Benefits_JSS_Rate_Single: 375.6
+Benefits_JSS_Rate_SoleParent: 525.81
 Benefits_SPS_AbatementScale:
   thresholds:
   - 0.0
@@ -44,7 +44,7 @@ Benefits_SPS_AbatementScale:
   - 0.0
   - 0.3
   - 0.7
-Benefits_SPS_Rate: 528.36
+Benefits_SPS_Rate: 525.81
 Benefits_Entitlement_Age_SPS_ChildLowerBound: 14.0
 Benefits_WinterEnergy_Rates_Single: 450.0
 Benefits_WinterEnergy_Rates_CoupleOrDeps: 700.0
@@ -56,8 +56,8 @@ FamilyAssistance_Abatement_AbatementScale:
   - 0.0
   - 0.27
 FamilyAssistance_Abatement_Order: 0.0
-FamilyAssistance_FTC_Rates_FirstChild: 8056.0
-FamilyAssistance_FTC_Rates_SubsequentChild: 6563.0
+FamilyAssistance_FTC_Rates_FirstChild: 8013.0
+FamilyAssistance_FTC_Rates_SubsequentChild: 6528.0
 FamilyAssistance_IWTC_Rates_UpTo3Children: 5070.0
 FamilyAssistance_IWTC_Rates_SubsequentChildren: 780.0
 FamilyAssistance_IWTC_Eligibility: 1.0
@@ -80,8 +80,8 @@ FamilyAssistance_BestStart_Abatement_AbatementScale:
   rates:
   - 0.0
   - 0.21
-FamilyAssistance_BestStart_Rates_Age0: 4109.0
-FamilyAssistance_BestStart_Rates_Age1or2: 4109.0
+FamilyAssistance_BestStart_Rates_Age0: 4088.0
+FamilyAssistance_BestStart_Rates_Age1or2: 4088.0
 IETC_AbatementScale:
   thresholds:
   - 0.0
