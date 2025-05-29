@@ -225,12 +225,8 @@ emtr <- function(
     Parameters$Accommodation_MaxRate_SingleNoDeps_Area4
   ),  nrow=4, ncol=3)
   
-  # Count and categorise children
+  # Count children
   N_kids <- length(Children_ages)
-  BS_abating_kids <- sum(Children_ages==1L) * (model_year >= 2020) +
-    sum(Children_ages==2L) * (model_year >= 2021)
-  
-  BS_nonabating_kids <- sum(Children_ages==0L) * (model_year >= 2019)
 
   # Convert tax and abatement schedules to weekly -------------------------------
   # Note that benefit abatement scales in TAWA parameters are weekly values scaled to annual assuming a 52.2 week year
@@ -555,10 +551,27 @@ emtr <- function(
   
   # If receiving best start they shouldn’t be able to receive IETC ---------------
   # Best Start ------------
-  X[, BestStart_Universal := BS_nonabating_kids*BS_Rate0]
-  X[, BestStart_Abated := Abate(TRUE, BS_abating_kids*BS_Rate1or2,
-                                FamilyAssistance_BestStart_Abatement_AbatementScale_Weekly,
-                                gross_wage1+gross_wage2+gross_benefit1+gross_benefit2)]
+  BS_kids_aged0 <- sum(Children_ages == 0L) * (model_year >= 2019)
+  BS_kids_aged1or2 <- (
+    sum(Children_ages == 1L) * (model_year >= 2020) +
+      sum(Children_ages == 2L) * (model_year >= 2021)
+  )
+  
+  X[, c("BestStart_Abated", "BestStart_Universal") := 0] # initialise to zero
+  
+  if (model_year %between% c(2019, 2026)) {
+    # When BestStart was first introduced in TY19,
+    # it was universal for children aged 0, and abated for children aged 1 or 2
+    X[, BestStart_Universal := BS_kids_aged0*BS_Rate0]
+    X[, BestStart_Abated := Abate(TRUE, BS_kids_aged1or2*BS_Rate1or2,
+                                  FamilyAssistance_BestStart_Abatement_AbatementScale_Weekly,
+                                  gross_wage1+gross_wage2+gross_benefit1+gross_benefit2)]
+  } else if (model_year >= 2027) {
+    # Budget 2025: remove universality for children aged 0, from TY27 onwards
+    X[, BestStart_Abated := Abate(TRUE, BS_kids_aged0*BS_Rate0 + BS_kids_aged1or2*BS_Rate1or2,
+                                  FamilyAssistance_BestStart_Abatement_AbatementScale_Weekly,
+                                  gross_wage1+gross_wage2+gross_benefit1+gross_benefit2)]
+  }
   X[, BestStart_Total := BestStart_Universal + BestStart_Abated]
   
   
