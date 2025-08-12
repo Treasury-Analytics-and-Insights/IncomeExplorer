@@ -14,8 +14,8 @@ suppressMessages({
   library(data.table)
 })
 
-# TY25 minimum wage
-DEFAULT_HOURLY_WAGE <- 23.15
+# TY26 minimum wage
+DEFAULT_HOURLY_WAGE <- 23.50
 
 # Define UI
 shinyUI(fluidPage(
